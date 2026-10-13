@@ -1,5 +1,5 @@
 (() => {
-  if (location.hostname === 'gip.internal' || !/^https?:$/.test(location.protocol)) return;
+  if (location.hostname === 'appassets.androidplatform.net' || !/^https?:$/.test(location.protocol)) return;
   let s = __SEED__;
   const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
   const def = (o, p, v) => { try { Object.defineProperty(o, p, { get: () => v, configurable: true }); } catch (e) {} };

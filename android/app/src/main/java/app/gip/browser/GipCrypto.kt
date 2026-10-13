@@ -11,9 +11,8 @@ import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
 import javax.crypto.KeyAgreement
-import javax.crypto.SecretKeyFactory
+import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
@@ -29,9 +28,16 @@ object GipCrypto {
     fun b64(b: ByteArray): String = java.util.Base64.getEncoder().encodeToString(b)
     fun unb64(s: String): ByteArray = java.util.Base64.getDecoder().decode(s)
 
-    fun deriveKey(password: String, salt: ByteArray): ByteArray {
-        val spec = PBEKeySpec(password.toCharArray(), salt, 210_000, 256)
-        return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
+    const val ITERATIONS = 210_000
+
+    /**
+     * PBKDF2-HMAC-SHA256 (RFC 8018), clé de 256 bits.
+     * Voir Pbkdf2.kt : le SecretKeyFactory "PBKDF2WithHmacSHA256" d'Android (BouncyCastle)
+     * mettait plusieurs minutes pour 210 000 itérations. Résultat identique au standard.
+     */
+    fun deriveKey(password: String, salt: ByteArray, iterations: Int = ITERATIONS): ByteArray {
+        if (password.isEmpty()) throw GipError("Mot de passe incorrect")
+        return Pbkdf2.derive(password.toByteArray(Charsets.UTF_8), salt, iterations)
     }
 
     fun encrypt(key: ByteArray, data: ByteArray): ByteArray {

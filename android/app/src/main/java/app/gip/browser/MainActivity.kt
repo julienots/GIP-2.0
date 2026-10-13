@@ -51,7 +51,7 @@ import java.util.concurrent.Executors
 class MainActivity : Activity(), GipHost {
 
     companion object {
-        const val HOST = "gip.internal"
+        const val HOST = "appassets.androidplatform.net"
         const val BASE = "https://$HOST/"
         private val PAGES = setOf("home", "search", "settings", "history", "bookmarks", "downloads", "privacy", "mail", "notes", "vault", "drive", "agenda", "account", "about", "error", "auth")
         private const val REQ_FILE = 41
@@ -108,11 +108,13 @@ class MainActivity : Activity(), GipHost {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installCrashHandler()
         setContentView(R.layout.activity_main)
         Shield.load(this)
         store = GipStore(filesDir)
         api = GipApi(store, this)
-        WebView.setWebContentsDebuggingEnabled(false)
+        // Débogage WebView uniquement dans les versions de test (APK debug)
+        WebView.setWebContentsDebuggingEnabled(applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0)
 
         root = findViewById(R.id.root)
         topbar = findViewById(R.id.topbar)
@@ -132,6 +134,7 @@ class MainActivity : Activity(), GipHost {
         registerDownloads()
         pendingUrl = urlFromIntent(intent)
         showLock(quick = false)
+        ui.postDelayed({ showPreviousCrash() }, 3500)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -337,7 +340,7 @@ class MainActivity : Activity(), GipHost {
         tab.webView.loadUrl(target, headers)
     }
 
-    /** gip://x → https://gip.internal/x */
+    /** gip://x → https://appassets.androidplatform.net/x */
     private fun toLoadable(url: String): String {
         if (url.startsWith("gip://")) {
             val rest = url.removePrefix("gip://").let { if (it.startsWith("newtab")) "home" + it.removePrefix("newtab") else it }
@@ -490,7 +493,9 @@ class MainActivity : Activity(), GipHost {
         @SuppressLint("WebViewClientOnReceivedSslError")
         override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
             handler.cancel()
-            showError(view, -201, "ERR_CERT_INVALID", error.url)
+            // Erreur sur une ressource secondaire (image, script…) : on la bloque sans remplacer la page
+            val main = view.url ?: ""
+            if (error.url.trimEnd('/') == main.trimEnd('/') || main.isEmpty() || main == "about:blank") showError(view, -201, "ERR_CERT_INVALID", error.url)
         }
 
         override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
@@ -539,6 +544,10 @@ class MainActivity : Activity(), GipHost {
     /* ------------------------------ Chrome client ------------------------------ */
 
     inner class Chrome : WebChromeClient() {
+        override fun onConsoleMessage(m: ConsoleMessage): Boolean {
+            if (m.messageLevel() == ConsoleMessage.MessageLevel.ERROR) android.util.Log.e("GipJS", "${m.message()} @ ${m.sourceId()}:${m.lineNumber()}")
+            return true
+        }
         override fun onProgressChanged(view: WebView, p: Int) {
             if (tabOf(view) === current) {
                 progress.visibility = if (p < 100) View.VISIBLE else progress.visibility
@@ -668,17 +677,44 @@ class MainActivity : Activity(), GipHost {
     inner class Bridge(private val wv: WebView) {
         @JavascriptInterface
         fun call(method: String, argJson: String, id: Int) {
-            val tab = tabOf(wv)
-            // Seules les pages internes gip:// peuvent utiliser l'API
-            val allowed = tab != null && tab.isInternal && (wv === authView || !method.startsWith("auth.")) && (wv !== authView || method.startsWith("auth."))
-            bg.execute {
-                val (ok, json) = if (!allowed) false to JSONObject.quote("Accès refusé") else try {
-                    val arg = JSONTokener(argJson).nextValue()
-                    true to toJson(api.call(method, if (arg == JSONObject.NULL) null else arg))
-                } catch (e: Throwable) { false to JSONObject.quote(e.message ?: e.toString()) }
-                ui.post { try { wv.evaluateJavascript("window.__gipResolve&&window.__gipResolve($id,$ok,$json)", null) } catch (_: Exception) {} }
+            ui.post {
+                // Seules les pages internes gip:// peuvent utiliser l'API : on vérifie l'URL réellement affichée
+                val pageHost = try { Uri.parse(wv.url ?: "").host } catch (_: Exception) { null }
+                val isAuth = wv === authView
+                val allowed = pageHost == HOST && (if (isAuth) method.startsWith("auth.") else !method.startsWith("auth."))
+                bg.execute {
+                    val (ok, json) = if (!allowed) false to JSONObject.quote("Accès refusé ($method)") else try {
+                        val arg = JSONTokener(argJson).nextValue()
+                        true to toJson(api.call(method, if (arg == JSONObject.NULL) null else arg))
+                    } catch (e: Throwable) { logError("api $method", e); false to JSONObject.quote(e.message ?: e.toString()) }
+                    ui.post { try { wv.evaluateJavascript("window.__gipResolve&&window.__gipResolve($id,$ok,$json)", null) } catch (_: Exception) {} }
+                }
             }
         }
+    }
+
+    /* ------------------------------ Diagnostic ------------------------------ */
+
+    private val crashFile by lazy { java.io.File(filesDir, "gip-crash.txt") }
+
+    fun logError(where: String, e: Throwable) {
+        android.util.Log.e("Gip", where, e)
+        try { crashFile.appendText("[${java.util.Date()}] $where\n${android.util.Log.getStackTraceString(e)}\n") } catch (_: Exception) {}
+    }
+
+    private fun installCrashHandler() {
+        val prev = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e -> logError("crash ${t.name}", e); prev?.uncaughtException(t, e) }
+    }
+
+    private fun showPreviousCrash() {
+        if (!crashFile.exists()) return
+        val txt = crashFile.readText().takeLast(4000)
+        crashFile.delete()
+        AlertDialog.Builder(this, R.style.Gip_Dialog).setTitle("Gip a rencontré un problème")
+            .setMessage("Voici le rapport technique. Vous pouvez le copier pour le transmettre.\n\n$txt")
+            .setPositiveButton("Fermer", null)
+            .setNeutralButton("Copier") { _, _ -> copyToClipboard(txt, false) }.show()
     }
 
     private fun toJson(v: Any?): String = when (v) {
@@ -855,8 +891,6 @@ class MainActivity : Activity(), GipHost {
         findViewById<View>(R.id.findNext).setOnClickListener { current?.webView?.findNext(true) }
         findViewById<View>(R.id.findPrev).setOnClickListener { current?.webView?.findNext(false) }
         findViewById<View>(R.id.findClose).setOnClickListener { closeFind() }
-        container.viewTreeObserver.addOnGlobalLayoutListener { }
-        WebView.setWebContentsDebuggingEnabled(false)
         findCount.text = "0/0"
     }
 

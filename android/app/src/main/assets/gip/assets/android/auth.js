@@ -9,11 +9,22 @@
   const cleanErr = (e) => String(e && e.message || e);
 
   const quick = new URLSearchParams(location.search).get('quick') === '1';
-  state = await gip.call('auth.state');
-  await sleep(quick ? 300 : 2200);
+  const minSplash = sleep(quick ? 300 : 2000);
+  let bootError = null;
+  try {
+    if (!window.gip) throw new Error(window.__gipMissing ? 'Le pont natif GipNative est absent' : 'API Gip indisponible');
+    state = await gip.call('auth.state');
+  } catch (e) { bootError = e; }
+  await minSplash;
   $('#splash').classList.add('out');
-  setTimeout(() => $('#splash').remove(), 800);
+  setTimeout(() => { const s = $('#splash'); if (s) s.remove(); }, 800);
   $('#auth').classList.remove('hidden');
+  if (bootError) {
+    $('#auth-sub').textContent = 'Démarrage impossible';
+    document.querySelector('.auth-card').insertAdjacentHTML('beforeend', `<div class="auth-err" style="margin-top:8px">${esc(cleanErr(bootError))}</div><button class="btn primary block" id="retry"><span>Réessayer</span></button>`);
+    $('#retry').onclick = () => location.reload();
+    return;
+  }
 
   const avatar = (a, cls) => `<div class="avatar ${cls}" style="--c:${esc(a.color)}">${esc(a.name[0] || '?')}</div>`;
   function step(id) { $$('.auth-step').forEach((s) => s.classList.add('hidden')); const el = $('#' + id); el.classList.remove('hidden'); el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
@@ -44,7 +55,10 @@
   $('#auth-new').onclick = () => { $('#auth-sub').textContent = 'Nouveau compte Gip'; step('auth-create'); };
   $('#create-back').onclick = home;
   $('#login-back').onclick = () => { $('#auth-sub').textContent = 'Choisissez votre compte'; step('auth-pick'); };
-  $('#auth-guest').onclick = async () => { await done(); gip.call('auth.guest'); };
+  $('#auth-guest').onclick = async () => {
+    try { await gip.call('auth.guest'); $('#auth').classList.add('out'); }
+    catch (x) { $('#auth').classList.remove('out'); err('login', cleanErr(x)); }
+  };
   $('#create-colors').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; picked = b.dataset.c; $$('#create-colors button').forEach((x) => x.classList.toggle('on', x === b)); });
   $('#create-pass').addEventListener('input', (e) => {
     const v = e.target.value; let s = 0;

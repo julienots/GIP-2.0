@@ -1,6 +1,6 @@
 /* Gip 2.0 Android — pont entre les pages gip:// et le code natif (remplace le preload Electron). */
 (function () {
-  if (!window.GipNative) return;
+  if (!window.GipNative) { window.__gipMissing = true; return; }
   const pending = new Map();
   const listeners = new Map();
   let seq = 0;
@@ -28,7 +28,10 @@
     call(method, arg) {
       return new Promise((resolve, reject) => {
         const id = ++seq;
-        pending.set(id, { resolve, reject });
+        // Jamais d'attente infinie : délai maximal (plus long pour le chiffrement des comptes)
+        const ms = /^auth\.(login|create)|account\.(changePassword|delete)|drive\./.test(method) ? 120000 : 30000;
+        const timer = setTimeout(() => { if (pending.has(id)) { pending.delete(id); reject(new Error('Délai dépassé (' + method + ')')); } }, ms);
+        pending.set(id, { resolve: (v) => { clearTimeout(timer); resolve(v); }, reject: (e) => { clearTimeout(timer); reject(e); } });
         try { window.GipNative.call(method, JSON.stringify(arg === undefined ? null : enc(arg)), id); }
         catch (e) { pending.delete(id); reject(e); }
       });

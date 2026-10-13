@@ -70,3 +70,30 @@ class GipStoreTest {
         assertFalse(s.settings.getBoolean("saveHistory"))
     }
 }
+
+class GipCryptoTest {
+    @Test fun pbkdf2IdentiqueAuStandard() {
+        val salt = GipCrypto.random(16)
+        for (pw in listOf("alice123", "Motdepasse42", "é€ unicode 🔐")) {
+            val ref = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(javax.crypto.spec.PBEKeySpec(pw.toCharArray(), salt, 210_000, 256)).encoded
+            assertArrayEquals(ref, GipCrypto.deriveKey(pw, salt))
+        }
+        // Vecteur de test RFC 7914 §11 (PBKDF2-HMAC-SHA256, P="passwd", S="salt", c=1)
+        val v = GipCrypto.deriveKey("passwd", "salt".toByteArray(), 1)
+        assertEquals("55ac046e56e3089fec1691c22544b605", v.joinToString("") { "%02x".format(it) }.take(32))
+    }
+}
+
+class Pbkdf2PerfTest {
+    @Test fun clesLonguesEtRapide() {
+        val salt = "sel".toByteArray()
+        val longPw = "x".repeat(100)
+        val ref = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+            .generateSecret(javax.crypto.spec.PBEKeySpec(longPw.toCharArray(), salt, 1000, 256)).encoded
+        assertArrayEquals(ref, GipCrypto.deriveKey(longPw, salt, 1000))
+        val t0 = System.nanoTime()
+        GipCrypto.deriveKey("Motdepasse42", salt)
+        println("PBKDF2 210k : " + (System.nanoTime() - t0) / 1_000_000 + " ms")
+    }
+}

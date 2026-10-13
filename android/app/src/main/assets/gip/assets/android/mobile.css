@@ -1,0 +1,53 @@
+/* Adaptations mobiles des pages gip:// pour Gip 2.0 Android */
+html.android { -webkit-tap-highlight-color: transparent; }
+@media (max-width: 760px) {
+  .page { padding: 20px 14px 96px; }
+  .page-head { gap: 12px; margin-bottom: 18px; }
+  .page-head h1 { font-size: 22px; }
+  .page-head .hico { width: 44px; height: 44px; border-radius: 14px; }
+  .head-actions { width: 100%; flex-wrap: wrap; }
+  .head-actions .search-field { width: 100% !important; flex-basis: 100%; }
+  .head-actions .btn { flex: 1; }
+  .grid.c3 { grid-template-columns: 1fr 1fr; }
+  #top { grid-template-columns: 1fr !important; }
+  .list-item .acts { opacity: 1; }
+  .modal { padding: 18px; }
+  .rail { height: 62px; justify-content: flex-start; gap: 4px; padding: 0 6px; }
+  .rail a.svc { flex: none; }
+  /* Mail */
+  .page:has(.mail) { height: auto; min-height: 100vh; }
+  .mhead { padding: 14px !important; flex-wrap: wrap; }
+  .mhead .search-field { width: 100% !important; }
+  .mail { grid-template-columns: 1fr !important; }
+  .folders { flex-direction: row !important; overflow-x: auto; align-items: center; border-right: 0 !important; border-bottom: 1px solid var(--line); padding: 10px !important; }
+  .folders .compose { margin: 0 !important; height: 40px !important; flex: none; }
+  .folder { flex: none; }
+  .addr { display: none; }
+  .reader { display: none; padding: 18px !important; }
+  .mail.reading .list { display: none; }
+  .mail.reading .reader { display: block; }
+  /* Recherche */
+  .sbar { padding: 10px 12px !important; gap: 10px !important; }
+  .sbar .lg { font-size: 17px !important; }
+  .sres { grid-template-columns: 1fr !important; padding: 12px 14px 40px !important; gap: 16px !important; }
+  .side { order: 2 !important; }
+  .res a.t { font-size: 16px !important; }
+  /* Agenda */
+  .cal { gap: 3px !important; }
+  .day { min-height: 54px !important; padding: 4px !important; border-radius: 10px !important; }
+  .cal-head h2 { min-width: 0 !important; font-size: 18px !important; }
+  /* Accueil */
+  .home { padding-top: 5vh !important; }
+  .clock { font-size: 64px !important; }
+  .hsearch form { height: 54px !important; }
+  .engine { display: none !important; }
+  .dial { grid-template-columns: repeat(3, 1fr) !important; gap: 10px !important; margin-top: 26px !important; }
+  .widgets { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .widget .num { font-size: 26px !important; }
+}
+@media (max-width: 760px) {
+  .mail { grid-template-rows: auto auto; align-content: start; }
+  .setting:has(select), .setting:has(.row), .setting:has(input.input) { flex-wrap: wrap; }
+  .setting:has(select) .txt, .setting:has(.row) .txt, .setting:has(input.input) .txt { flex-basis: 100%; }
+  .setting select, .setting input.input { width: 100% !important; }
+}

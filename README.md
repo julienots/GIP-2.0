@@ -65,6 +65,22 @@ npm run dist:mac     # macOS (.dmg)
 npm run dist:linux   # Linux (AppImage, .deb)
 ```
 
+## 📱 Version Android (APK)
+
+Le dossier `android/` contient Gip 2.0 pour Android 10 ou plus récent. C'est une application native en Kotlin, basée sur le WebView Chromium. Elle réutilise directement les pages `gip://` de la version bureau et propose :
+- des comptes chiffrés (PBKDF2 + AES-256-GCM) et le mode invité ;
+- Gip Mail chiffré de bout en bout (ECDH P-256) ;
+- le Bouclier (même liste de blocage), HTTPS partout, les cookies tiers bloqués et l'anti-empreinte ;
+- des onglets normaux et privés, un sélecteur d'onglets animé, la recherche dans la page, la version ordinateur, les téléchargements et le plein écran vidéo ;
+- la possibilité de devenir le navigateur par défaut.
+
+```bash
+cd android
+echo "sdk.dir=/chemin/vers/android-sdk" > local.properties
+gradle assembleRelease          # → app/build/outputs/apk/release/app-release.apk
+gradle testReleaseUnitTest      # tests du chiffrement, du mail et du Drive
+```
+
 ## ⌨️ Raccourcis
 
 | Raccourci | Action |

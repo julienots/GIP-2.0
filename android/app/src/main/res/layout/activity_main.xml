@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <LinearLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/topbar"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="@color/chrome"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingEnd="6dp">
+
+            <LinearLayout
+                android:id="@+id/omnibox"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/field_bg"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="6dp"
+                android:paddingEnd="4dp">
+
+                <ImageButton
+                    android:id="@+id/siteIcon"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/ripple_round"
+                    android:contentDescription="Informations sur le site"
+                    android:padding="8dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_sparkle" />
+
+                <EditText
+                    android:id="@+id/url"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="Rechercher avec Gip ou saisir une adresse"
+                    android:imeOptions="actionGo|flagNoExtractUi"
+                    android:inputType="textUri"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:selectAllOnFocus="true"
+                    android:singleLine="true"
+                    android:textColor="@color/text"
+                    android:textColorHint="@color/muted"
+                    android:textSize="15sp" />
+
+                <FrameLayout
+                    android:id="@+id/shield"
+                    android:layout_width="40dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/ripple_round">
+
+                    <ImageView
+                        android:id="@+id/shieldIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_shield"
+                        android:tint="@color/ok" />
+
+                    <TextView
+                        android:id="@+id/shieldCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="16dp"
+                        android:layout_gravity="top|end"
+                        android:background="@drawable/badge_bg"
+                        android:gravity="center"
+                        android:minWidth="16dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="#04241A"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/reload"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/ripple_round"
+                android:contentDescription="Actualiser"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_reload" />
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/progress"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_marginTop="-3dp"
+            android:max="100"
+            android:progressDrawable="@drawable/progress"
+            android:visibility="invisible" />
+
+        <LinearLayout
+            android:id="@+id/findbar"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="@color/chrome"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingEnd="6dp"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/findInput"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:background="@drawable/field_bg"
+                android:hint="Rechercher dans la page"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:paddingStart="14dp"
+                android:singleLine="true"
+                android:textColor="@color/text"
+                android:textColorHint="@color/muted"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/findCount"
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="0/0"
+                android:textColor="@color/muted" />
+
+            <ImageButton android:id="@+id/findPrev" android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/ripple_round" android:padding="9dp" android:scaleType="fitCenter" android:src="@drawable/ic_up" android:contentDescription="Précédent" />
+            <ImageButton android:id="@+id/findNext" android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/ripple_round" android:padding="9dp" android:scaleType="fitCenter" android:src="@drawable/ic_down" android:contentDescription="Suivant" />
+            <ImageButton android:id="@+id/findClose" android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/ripple_round" android:padding="9dp" android:scaleType="fitCenter" android:src="@drawable/ic_x" android:contentDescription="Fermer" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/webContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:id="@+id/bottombar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@color/chrome"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageButton android:id="@+id/back" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@drawable/ripple_round" android:padding="15dp" android:scaleType="fitCenter" android:src="@drawable/ic_back" android:contentDescription="Précédent" />
+            <ImageButton android:id="@+id/forward" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@drawable/ripple_round" android:padding="15dp" android:scaleType="fitCenter" android:src="@drawable/ic_forward" android:contentDescription="Suivant" />
+            <ImageButton android:id="@+id/home" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@drawable/ripple_round" android:padding="15dp" android:scaleType="fitCenter" android:src="@drawable/ic_home" android:contentDescription="Accueil" />
+
+            <FrameLayout
+                android:id="@+id/tabsBtn"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/ripple_round"
+                android:contentDescription="Onglets">
+
+                <TextView
+                    android:id="@+id/tabsCount"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/tabs_count_bg"
+                    android:gravity="center"
+                    android:text="1"
+                    android:textColor="@color/text"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <ImageButton android:id="@+id/menu" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:background="@drawable/ripple_round" android:padding="15dp" android:scaleType="fitCenter" android:src="@drawable/ic_menu" android:contentDescription="Menu" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/banner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="76dp"
+        android:background="@drawable/card_bg_active"
+        android:elevation="8dp"
+        android:paddingStart="18dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="18dp"
+        android:paddingBottom="12dp"
+        android:textColor="@color/text"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/fullscreen"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:visibility="gone" />
+</FrameLayout>

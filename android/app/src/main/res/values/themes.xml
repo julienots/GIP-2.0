@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0B0D17</color>
+    <color name="chrome">#12152B</color>
+    <color name="chrome_private">#1E1038</color>
+    <color name="field">#1D2244</color>
+    <color name="text">#EEF0FF</color>
+    <color name="muted">#9097B8</color>
+    <color name="accent">#7C5CFF</color>
+    <color name="accent2">#00C2FF</color>
+    <color name="ok">#2EE59D</color>
+    <style name="Theme.Gip" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/chrome</item>
+        <item name="android:navigationBarColor">@color/chrome</item>
+        <item name="android:colorAccent">@color/accent</item>
+        <item name="android:colorPrimary">@color/accent</item>
+        <item name="android:textColorPrimary">@color/text</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31" xmlns:tools="http://schemas.android.com/tools">@color/bg</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31" xmlns:tools="http://schemas.android.com/tools">@drawable/ic_launcher_fg</item>
+    </style>
+    <style name="Gip.Dialog" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">@color/accent</item>
+        <item name="android:windowBackground">@drawable/dialog_bg</item>
+    </style>
+</resources>

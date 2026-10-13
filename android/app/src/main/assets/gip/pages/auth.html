@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gip 2.0</title>
+  <link rel="stylesheet" href="/assets/android/auth.css">
+</head>
+<body>
+  <div id="splash">
+    <div class="splash-bg"><i></i><i></i><i></i></div>
+    <div class="splash-logo">
+      <svg viewBox="0 0 120 120" class="logo-svg">
+        <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#00c2ff"/><stop offset="1" stop-color="#2ee59d"/></linearGradient></defs>
+        <circle class="orbit o1" cx="60" cy="60" r="54"/>
+        <circle class="orbit o2" cx="60" cy="60" r="44"/>
+        <path class="g-path" d="M84 44 A30 30 0 1 0 90 62 L62 62"/>
+        <circle class="sat" cx="60" cy="6" r="4"/>
+      </svg>
+      <div class="splash-title"><span>G</span><span>i</span><span>p</span><span class="v">2.0</span></div>
+      <div class="splash-sub">Navigation libre · privée · chiffrée</div>
+    </div>
+  </div>
+
+  <div id="auth" class="hidden">
+    <div class="aurora"><i></i><i></i><i></i><i></i></div>
+    <div class="auth-card glass">
+      <div class="auth-brand"><div class="mini-logo"></div><div><h1>Gip <span class="grad">2.0</span></h1><p class="muted" id="auth-sub">Choisissez votre compte</p></div></div>
+      <section id="auth-pick" class="auth-step hidden">
+        <div id="auth-accounts" class="auth-accounts"></div>
+        <div class="auth-actions"><button class="btn ghost" id="auth-new">＋ Nouveau compte</button><button class="btn ghost" id="auth-guest">Mode invité</button></div>
+      </section>
+      <section id="auth-login" class="auth-step hidden">
+        <div class="auth-who"><div class="avatar xl" id="login-avatar"></div><div><b id="login-name"></b><div class="muted small" id="login-addr"></div></div></div>
+        <form id="login-form">
+          <label class="field"><span>Mot de passe</span><input type="password" id="login-pass" autocomplete="current-password" required></label>
+          <div class="auth-err" id="login-err"></div>
+          <button class="btn primary block" type="submit"><span>Déverrouiller</span></button>
+        </form>
+        <button class="link" id="login-back">← Changer de compte</button>
+      </section>
+      <section id="auth-create" class="auth-step hidden">
+        <form id="create-form">
+          <label class="field"><span>Nom</span><input id="create-name" maxlength="40" placeholder="Votre prénom ou pseudo" required></label>
+          <label class="field"><span>Mot de passe principal</span><input type="password" id="create-pass" autocomplete="new-password" minlength="6" required></label>
+          <div class="strength"><i id="create-strength"></i></div>
+          <label class="field"><span>Confirmer</span><input type="password" id="create-pass2" autocomplete="new-password" minlength="6" required></label>
+          <div class="colors" id="create-colors"></div>
+          <p class="muted small">🔒 Historique, favoris, notes, mots de passe, fichiers et mails seront chiffrés en AES-256 avec ce mot de passe. Il ne peut pas être récupéré.</p>
+          <div class="auth-err" id="create-err"></div>
+          <button class="btn primary block" type="submit"><span>Créer mon compte Gip</span></button>
+        </form>
+        <button class="link" id="create-back">← Retour</button>
+      </section>
+    </div>
+    <div class="auth-foot muted small">Aucune télémétrie · Aucune donnée envoyée à Gip</div>
+  </div>
+  <script src="/assets/android/shim.js"></script>
+  <script src="/assets/android/auth.js"></script>
+</body>
+</html>

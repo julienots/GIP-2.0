@@ -1,0 +1,105 @@
+<p align="center"><img src="build/icon.png" width="120" alt="Gip 2.0"></p>
+
+<h1 align="center">Gip 2.0</h1>
+<p align="center"><b>Le navigateur libre, privé et chiffré — avec ses propres services et comptes internes.</b></p>
+
+---
+
+## ✨ Fonctionnalités
+
+### 🌐 Navigateur complet (moteur Chromium)
+- Onglets animés : glisser-déposer, épingler, dupliquer, couper le son, rouvrir un onglet fermé
+- Barre d'adresse intelligente avec suggestions (historique, favoris, recherche)
+- Barre de favoris, recherche dans la page, zoom par onglet, plein écran, impression, outils de développement
+- Gestionnaire de téléchargements (pause, reprise, anneau de progression)
+- Fenêtres privées (session en mémoire, effacée à la fermeture)
+- Restauration de la session précédente, menu contextuel complet, raccourcis clavier
+- Demandes d'autorisation (caméra, micro, position, notifications…) mémorisées par site
+- Thèmes clair, sombre ou système, couleur d'accent et fond d'accueil personnalisables
+
+### 👤 Comptes Gip internes (100 % locaux)
+- Plusieurs comptes sur le même appareil, plus un mode invité
+- **Chaque profil est chiffré en AES-256-GCM** avec une clé dérivée de votre mot de passe (scrypt)
+- Historique, favoris, notes, coffre-fort, Drive, agenda et mails : tout est chiffré
+- Chaque compte a sa propre session web isolée (cookies séparés)
+- Changement de mot de passe (avec re-chiffrement), export et suppression du compte
+
+### 🧩 Services Gip
+| Service | Description |
+|---|---|
+| 🔍 **Gip Search** | Recherche relayée par un proxy Gip : sans cookies, sans pistage, sans annonces. Calculatrice et réponses instantanées |
+| ✉️ **Gip Mail** | Messagerie entre comptes Gip, **chiffrée de bout en bout** (X25519 + AES-256-GCM) — adresses `prenom@gip.local` |
+| 📝 **Gip Notes** | Notes colorées, épinglables, chiffrées |
+| 🔑 **Coffre-fort** | Gestionnaire de mots de passe, générateur, analyse de robustesse et de réutilisation, vérification des fuites (k-anonymat) |
+| ☁️ **Gip Drive** | Stockage de fichiers chiffré, glisser-déposer, aperçu d'images, de vidéos et de textes |
+| 📅 **Gip Agenda** | Calendrier mensuel avec événements colorés |
+| 🛡️ **Bouclier** | Tableau de bord de confidentialité avec statistiques animées |
+
+### 🛡️ Vie privée intégrée
+- Blocage des publicités et des traqueurs (listes intégrées, compteur par page)
+- HTTPS partout (passage automatique en HTTPS)
+- Blocage des cookies tiers et réduction du Referer aux requêtes inter-sites
+- Nettoyage des liens (`utm_*`, `fbclid`, `gclid`…)
+- Anti-empreinte numérique (canvas, WebGL, audio, matériel)
+- Global Privacy Control et Do Not Track
+- Option « tout effacer à la fermeture », aucune télémétrie
+
+### 🎬 Animations
+Écran de démarrage avec logo dessiné, connexion sur fond aurore animé, onglets qui apparaissent et se ferment en fondu, barre de progression lumineuse, menus à ressort, compteurs animés, fonds vivants sur la page d'accueil.
+
+## 🚀 Lancer Gip 2.0
+
+Prérequis : [Node.js](https://nodejs.org) 18 ou plus récent.
+
+```bash
+npm install
+npm start
+```
+
+> Sous Linux en `root` (conteneurs) : `npx electron . --no-sandbox`
+
+### Créer un installateur
+```bash
+npm run dist:win     # Windows (.exe)
+npm run dist:mac     # macOS (.dmg)
+npm run dist:linux   # Linux (AppImage, .deb)
+```
+
+## ⌨️ Raccourcis
+
+| Raccourci | Action |
+|---|---|
+| `Ctrl+T` / `Ctrl+W` | Nouvel onglet / fermer l'onglet |
+| `Ctrl+Maj+T` | Rouvrir l'onglet fermé |
+| `Ctrl+N` / `Ctrl+Maj+N` | Nouvelle fenêtre / fenêtre privée |
+| `Ctrl+L` | Barre d'adresse |
+| `Ctrl+F` | Rechercher dans la page |
+| `Ctrl+D` | Ajouter aux favoris |
+| `Ctrl+H` / `Ctrl+J` | Historique / téléchargements |
+| `Ctrl+Tab`, `Ctrl+1…9` | Changer d'onglet |
+| `Ctrl +` / `Ctrl -` / `Ctrl 0` | Zoom |
+| `Alt+←` / `Alt+→` | Précédent / suivant |
+| `F5`, `F11`, `F12` | Actualiser, plein écran, outils de développement |
+
+## 🗂️ Structure
+
+```
+src/
+├── main/            Processus principal (Electron)
+│   ├── main.js      Fenêtres, protocole gip://, IPC, téléchargements, Gip Search
+│   ├── store.js     Comptes, chiffrement, Gip Mail E2E, Gip Drive
+│   ├── privacy.js   Bouclier : blocage, HTTPS, cookies, nettoyage des liens
+│   └── blocklist.js Listes de blocage intégrées
+├── preload/         Ponts sécurisés (contextIsolation + sandbox)
+└── renderer/
+    ├── browser/     Interface du navigateur (onglets, barre d'adresse, menus)
+    └── pages/       Pages internes gip:// (accueil, services, paramètres…)
+```
+
+## 🔐 Sécurité
+- Les pages web s'exécutent en bac à sable (`sandbox`, `contextIsolation`, pas de Node.js)
+- Les pages internes `gip://` sont les seules à pouvoir appeler l'API Gip ; un site web ne peut pas naviguer vers elles
+- Politique de sécurité du contenu (CSP) stricte sur les pages internes
+- Le mot de passe principal ne peut pas être récupéré : sans lui, les données restent illisibles
+
+Licence MIT.

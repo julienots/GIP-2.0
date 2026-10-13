@@ -1,0 +1,12 @@
+.cal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.cal-head h2 { font-size: 22px; text-transform: capitalize; min-width: 220px; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal .dow { text-align: center; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 6px 0; }
+.day { min-height: 104px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); padding: 8px; cursor: pointer; transition: background .2s, transform .25s var(--spring); animation: rise .4s var(--spring) both; overflow: hidden; }
+.day:hover { background: var(--card2); transform: translateY(-2px); }
+.day.other { opacity: .4; }
+.day.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 30px -18px var(--accent); }
+.day .n { font-weight: 700; font-size: 13px; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; }
+.day.today .n { background: var(--grad); color: #fff; }
+.ev { font-size: 11.5px; padding: 3px 7px; border-radius: 7px; margin-top: 4px; background: color-mix(in srgb, var(--c) 22%, transparent); border-left: 3px solid var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 700px) { .day { min-height: 64px; } .ev { font-size: 0; height: 6px; padding: 0; } }

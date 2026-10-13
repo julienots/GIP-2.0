@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https: http: gip:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>Gip 2.0</title>
+  <link rel="stylesheet" href="browser.css">
+</head>
+<body>
+  <!-- ============ SPLASH ============ -->
+  <div id="splash" aria-hidden="true">
+    <div class="splash-bg"><i></i><i></i><i></i></div>
+    <div class="splash-logo">
+      <svg viewBox="0 0 120 120" class="logo-svg">
+        <defs>
+          <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#00c2ff"/><stop offset="1" stop-color="#2ee59d"/>
+          </linearGradient>
+        </defs>
+        <circle class="orbit o1" cx="60" cy="60" r="54"/>
+        <circle class="orbit o2" cx="60" cy="60" r="44"/>
+        <path class="g-path" d="M84 44 A30 30 0 1 0 90 62 L62 62"/>
+        <circle class="sat" cx="60" cy="6" r="4"/>
+      </svg>
+      <div class="splash-title"><span>G</span><span>i</span><span>p</span><span class="v">2.0</span></div>
+      <div class="splash-sub">Navigation libre · privée · chiffrée</div>
+    </div>
+  </div>
+
+  <!-- ============ AUTH ============ -->
+  <div id="auth" class="hidden">
+    <div class="aurora"><i></i><i></i><i></i><i></i></div>
+    <div class="auth-drag"></div>
+    <div class="auth-card glass">
+      <div class="auth-brand">
+        <div class="mini-logo"></div>
+        <div>
+          <h1>Gip <span class="grad">2.0</span></h1>
+          <p class="muted" id="auth-sub">Choisissez votre compte</p>
+        </div>
+      </div>
+      <section id="auth-pick" class="auth-step">
+        <div id="auth-accounts" class="auth-accounts"></div>
+        <div class="auth-actions">
+          <button class="btn ghost" id="auth-new">＋ Nouveau compte</button>
+          <button class="btn ghost" id="auth-guest">Mode invité</button>
+        </div>
+      </section>
+      <section id="auth-login" class="auth-step hidden">
+        <div class="auth-who"><div class="avatar xl" id="login-avatar"></div><div><b id="login-name"></b><div class="muted small" id="login-addr"></div></div></div>
+        <form id="login-form">
+          <label class="field"><span>Mot de passe</span><input type="password" id="login-pass" autocomplete="current-password" required></label>
+          <div class="auth-err" id="login-err"></div>
+          <button class="btn primary block" type="submit"><span>Déverrouiller</span></button>
+        </form>
+        <button class="link" id="login-back">← Changer de compte</button>
+      </section>
+      <section id="auth-create" class="auth-step hidden">
+        <form id="create-form">
+          <label class="field"><span>Nom</span><input id="create-name" maxlength="40" placeholder="Votre prénom ou pseudo" required></label>
+          <label class="field"><span>Mot de passe principal</span><input type="password" id="create-pass" autocomplete="new-password" minlength="6" required></label>
+          <div class="strength"><i id="create-strength"></i></div>
+          <label class="field"><span>Confirmer</span><input type="password" id="create-pass2" autocomplete="new-password" minlength="6" required></label>
+          <div class="colors" id="create-colors"></div>
+          <p class="muted small">🔒 Toutes vos données (historique, favoris, notes, mots de passe, fichiers, mails) seront chiffrées en AES-256 avec ce mot de passe. Il ne peut pas être récupéré.</p>
+          <div class="auth-err" id="create-err"></div>
+          <button class="btn primary block" type="submit"><span>Créer mon compte Gip</span></button>
+        </form>
+        <button class="link" id="create-back">← Retour</button>
+      </section>
+    </div>
+    <div class="auth-foot muted small">Gip 2.0 · Aucune télémétrie · Aucune donnée envoyée à Gip</div>
+  </div>
+
+  <!-- ============ BROWSER ============ -->
+  <div id="browser" class="hidden">
+    <header id="titlebar">
+      <div class="traffic-space"></div>
+      <div id="tabstrip">
+        <div id="tabs"></div>
+        <button id="newtab" class="icon-btn" title="Nouvel onglet (Ctrl+T)"></button>
+      </div>
+      <div class="drag-fill"></div>
+      <div id="private-badge" class="hidden" title="Navigation privée : rien n'est enregistré"><span class="ico" data-ico="mask"></span> Privée</div>
+      <div id="winctl">
+        <button data-win="minimize" title="Réduire"><svg viewBox="0 0 10 10"><path d="M1 5h8"/></svg></button>
+        <button data-win="maximize" title="Agrandir"><svg viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" rx="1"/></svg></button>
+        <button data-win="close" class="close" title="Fermer"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/></svg></button>
+      </div>
+    </header>
+
+    <nav id="toolbar">
+      <button class="icon-btn" id="btn-back" title="Précédent (Alt+←)" data-ico="back"></button>
+      <button class="icon-btn" id="btn-forward" title="Suivant (Alt+→)" data-ico="forward"></button>
+      <button class="icon-btn" id="btn-reload" title="Actualiser (Ctrl+R)" data-ico="reload"></button>
+      <button class="icon-btn" id="btn-home" title="Accueil (Alt+Origine)" data-ico="home"></button>
+      <div id="omnibox">
+        <button id="site-info" class="omni-ico" title="Informations sur le site"><span data-ico="lock"></span></button>
+        <input id="url" spellcheck="false" autocomplete="off" placeholder="Rechercher avec Gip ou saisir une adresse">
+        <span id="zoom-ind" class="hidden"></span>
+        <button id="btn-shield" class="omni-ico shield" title="Bouclier Gip"><span data-ico="shield"></span><b id="shield-count" class="hidden">0</b></button>
+        <button id="btn-star" class="omni-ico" title="Ajouter aux favoris (Ctrl+D)"><span data-ico="star"></span></button>
+        <div id="suggest" class="popover hidden"></div>
+      </div>
+      <button class="icon-btn" id="btn-downloads" title="Téléchargements (Ctrl+J)"><span data-ico="download"></span><svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/></svg></button>
+      <button class="icon-btn" id="btn-services" title="Services Gip" data-ico="grid"></button>
+      <button class="avatar-btn" id="btn-account" title="Compte"><div class="avatar" id="tb-avatar"></div><b id="mail-badge" class="badge hidden"></b></button>
+      <button class="icon-btn" id="btn-menu" title="Menu" data-ico="menu"></button>
+      <div id="progress"><i></i></div>
+    </nav>
+
+    <div id="bookmarks-bar"></div>
+
+    <main id="content">
+      <div id="views"></div>
+      <div id="status-link" class="hidden"></div>
+      <div id="findbar" class="hidden">
+        <input id="find-input" placeholder="Rechercher dans la page">
+        <span id="find-count">0/0</span>
+        <button class="icon-btn sm" id="find-prev" data-ico="up" title="Précédent"></button>
+        <button class="icon-btn sm" id="find-next" data-ico="down" title="Suivant"></button>
+        <button class="icon-btn sm" id="find-close" data-ico="x" title="Fermer"></button>
+      </div>
+      <div id="crash" class="hidden">
+        <div class="crash-ico">😵</div>
+        <h2>Oups, cet onglet a planté</h2>
+        <p class="muted">Gip a isolé le problème : les autres onglets ne sont pas touchés.</p>
+        <button class="btn primary" id="crash-reload">Recharger</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- ============ POPOVERS ============ -->
+  <div id="layer"></div>
+  <div id="toasts"></div>
+
+  <script src="../pages/assets/icons.js"></script>
+  <script src="browser.js"></script>
+</body>
+</html>

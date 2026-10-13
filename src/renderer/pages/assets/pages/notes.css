@@ -1,0 +1,12 @@
+.notes { columns: 260px; column-gap: 14px; }
+.note { break-inside: avoid; margin-bottom: 14px; padding: 18px; border-radius: 18px; background: color-mix(in srgb, var(--c) 14%, var(--card)); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); cursor: pointer; transition: transform .3s var(--spring), box-shadow .3s; animation: rise .5s var(--spring) both; position: relative; }
+.note:hover { transform: translateY(-4px) rotate(-.4deg); box-shadow: 0 20px 40px -22px var(--c); }
+.note h3 { font-size: 16px; margin-bottom: 8px; padding-right: 22px; }
+.note p { margin: 0; white-space: pre-wrap; color: var(--muted); max-height: 220px; overflow: hidden; font-size: 13.5px; line-height: 1.55; }
+.note .pin { position: absolute; top: 14px; right: 14px; color: var(--c); }
+.note .d { font-size: 11px; color: var(--muted); margin-top: 12px; }
+.editor-colors { display: flex; gap: 8px; margin-top: 12px; }
+.editor-colors button { width: 26px; height: 26px; border-radius: 50%; transition: transform .2s var(--spring); }
+.editor-colors button.on { transform: scale(1.2); box-shadow: 0 0 0 2px var(--pop), 0 0 0 4px currentColor; }
+.ed-title { font-size: 20px; font-weight: 700; border: 0; background: transparent; outline: 0; width: 100%; padding: 4px 0 10px; }
+.ed-body { border: 0; background: transparent; outline: 0; width: 100%; min-height: 300px; resize: vertical; line-height: 1.65; font-size: 15px; }

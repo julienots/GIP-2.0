@@ -52,5 +52,10 @@
       ],
       "category": "Network"
     }
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "ajv": "^8.20.0"
   }
 }

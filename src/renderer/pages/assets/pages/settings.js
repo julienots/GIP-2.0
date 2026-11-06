@@ -26,6 +26,9 @@
         <select class="select" id="engine" style="width:180px">${Object.entries(engines).map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join('')}</select></div>
       <div class="setting"><div class="txt"><b>Page d'accueil</b><span>Page ouverte au démarrage et dans les nouveaux onglets</span></div>
         <input class="input" id="homepage" style="width:220px" value="${esc(s.homepage)}"></div>
+      <div class="setting"><div class="txt"><b>Filtre de contenu (SafeSearch)</b><span>Web, images, vidéos et actualités. « Désactivé » affiche tous les résultats, sans aucun filtre.</span></div>
+        <select class="select" id="safe" style="width:180px"><option value="strict">Strict</option><option value="moderate">Modéré</option><option value="off">Désactivé (aucun filtre)</option></select></div>
+      ${sw('imageProxy', 'Relayer les vignettes d\'images', 'Les images de Gip Search passent par Gip : les sites ne voient pas ce que vous cherchez')}
       ${sw('saveHistory', 'Enregistrer l\'historique', 'Stocké chiffré sur cet appareil uniquement')}
       ${sw('clearOnExit', 'Tout effacer à la fermeture', 'Historique, cookies et cache supprimés en quittant')}
     </div>
@@ -37,12 +40,14 @@
       <a class="btn" href="gip://privacy" style="margin-top:12px">${ico('shield', 16)} Tableau de bord complet</a>
     </div>
     <div class="card"><h2>${ico('info', 18)} Raccourcis clavier</h2>
-      ${[['Ctrl+T', 'Nouvel onglet'], ['Ctrl+Maj+T', 'Rouvrir l\'onglet fermé'], ['Ctrl+Maj+N', 'Fenêtre privée'], ['Ctrl+L', 'Barre d\'adresse'], ['Ctrl+F', 'Rechercher dans la page'], ['Ctrl+D', 'Ajouter aux favoris'], ['Ctrl+H / J', 'Historique / Téléchargements'], ['Ctrl+Tab', 'Onglet suivant'], ['Ctrl+1…9', 'Aller à l\'onglet'], ['Ctrl + / − / 0', 'Zoom'], ['F11 / F12', 'Plein écran / Outils dev']].map(([k, l]) => `<div class="setting" style="padding:8px 0"><div class="txt">${l}</div><span class="pill mono">${k}</span></div>`).join('')}
+      ${[['Ctrl+T', 'Nouvel onglet'], ['Ctrl+Maj+T', 'Rouvrir l\'onglet fermé'], ['Ctrl+Maj+N', 'Fenêtre privée'], ['Ctrl+L', 'Barre d\'adresse'], ['Ctrl+F', 'Rechercher dans la page'], ['Ctrl+D', 'Ajouter aux favoris'], ['Ctrl+H / J', 'Historique / Téléchargements'], ['Ctrl+Tab', 'Onglet suivant'], ['Ctrl+1…9', 'Aller à l\'onglet'], ['Ctrl + / − / 0', 'Zoom'], ['F11 / F12', 'Plein écran / Outils dev'], ['Ctrl+Maj+A', 'Panneau Gip IA'], ['Ctrl+Maj+G', 'Toutes les images de la page'], ['Ctrl+Maj+S', 'Capture d\'écran'], ['Ctrl+Maj+Y', 'Vidéo en image dans l\'image']].map(([k, l]) => `<div class="setting" style="padding:8px 0"><div class="txt">${l}</div><span class="pill mono">${k}</span></div>`).join('')}
     </div>
   </div>`);
 
   $('#theme').value = s.theme;
   $('#engine').value = s.searchEngine;
+  $('#safe').value = s.safeSearch || 'moderate';
+  $('#safe').onchange = (e) => set({ safeSearch: e.target.value }, 'Filtre : ' + e.target.selectedOptions[0].textContent);
   const set = async (patch, msg = 'Paramètre enregistré') => { s = await call('settings.set', patch); G.applyTheme(s); G.toast(msg); };
   $$('.switch[data-k]').forEach((b) => b.onclick = () => { b.classList.toggle('on'); set({ [b.dataset.k]: b.classList.contains('on') }); });
   $('#theme').onchange = (e) => set({ theme: e.target.value }, 'Thème appliqué');

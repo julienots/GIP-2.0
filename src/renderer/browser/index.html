@@ -103,6 +103,7 @@
         <div id="suggest" class="popover hidden"></div>
       </div>
       <button class="icon-btn" id="btn-downloads" title="Téléchargements (Ctrl+J)"><span data-ico="download"></span><svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/></svg></button>
+      <button class="icon-btn ai-btn" id="btn-ai" title="Gip IA (Ctrl+Maj+A)" data-ico="sparkle"></button>
       <button class="icon-btn" id="btn-services" title="Services Gip" data-ico="grid"></button>
       <button class="avatar-btn" id="btn-account" title="Compte"><div class="avatar" id="tb-avatar"></div><b id="mail-badge" class="badge hidden"></b></button>
       <button class="icon-btn" id="btn-menu" title="Menu" data-ico="menu"></button>
@@ -113,6 +114,7 @@
 
     <main id="content">
       <div id="views"></div>
+      <aside id="aipanel" class="hidden"><div id="ai-resize" title="Redimensionner"></div><div class="ap-head"><span class="ico" data-ico="sparkle"></span><b>Gip IA</b><span class="spacer"></span><button class="icon-btn sm" id="ai-tab" title="Ouvrir dans un onglet" data-ico="expand"></button><button class="icon-btn sm" id="ai-close" title="Fermer" data-ico="x"></button></div><div id="ai-host"></div></aside>
       <div id="status-link" class="hidden"></div>
       <div id="findbar" class="hidden">
         <input id="find-input" placeholder="Rechercher dans la page">

@@ -6,6 +6,8 @@
 
   const SERVICES = [
     { id: 'search', name: 'Gip Search', icon: 'search', c: '#4d7cff', url: 'gip://search' },
+    { id: 'images', name: 'Gip Images', icon: 'images', c: '#ff4fd8', url: 'gip://search?type=images' },
+    { id: 'ai', name: 'Gip IA', icon: 'sparkle', c: '#00d4a6', url: 'gip://ai', desktop: true },
     { id: 'mail', name: 'Gip Mail', icon: 'mail', c: '#ff5c8a', url: 'gip://mail' },
     { id: 'notes', name: 'Gip Notes', icon: 'note', c: '#ffb547', url: 'gip://notes' },
     { id: 'vault', name: 'Coffre-fort', icon: 'key', c: '#2ee59d', url: 'gip://vault' },
@@ -16,6 +18,9 @@
     { id: 'history', name: 'Historique', icon: 'history', c: '#5b6488', url: 'gip://history' },
     { id: 'downloads', name: 'Téléchargements', icon: 'download', c: '#3fb6a8', url: 'gip://downloads' }
   ];
+
+  // Gip IA et le serveur MCP n'existent que sur la version bureau.
+  if (document.documentElement.classList.contains('android')) for (let i = SERVICES.length - 1; i >= 0; i--) if (SERVICES[i].desktop) SERVICES.splice(i, 1);
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = (s, r = document) => r.querySelector(s);

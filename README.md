@@ -34,6 +34,33 @@
 | ☁️ **Gip Drive** | Stockage de fichiers chiffré, glisser-déposer, aperçu d'images, de vidéos et de textes |
 | 📅 **Gip Agenda** | Calendrier mensuel avec événements colorés |
 | 🛡️ **Bouclier** | Tableau de bord de confidentialité avec statistiques animées |
+| 🖼️ **Gip Images** | Recherche d'images multi-sources, filtre réglable (ou désactivé), visionneuse |
+| ✨ **Gip IA** | Assistant Claude ou compatible OpenAI, serveurs MCP, et Gip comme serveur MCP |
+
+### 🖼️ Gip Images, Vidéos et Actualités
+- **Recherche d'images multi-sources** : DuckDuckGo, Bing, Openverse et Wikimedia Commons interrogés en parallèle, résultats fusionnés et dédoublonnés, défilement infini
+- **Filtre de contenu réglable** (Paramètres ou directement dans la barre de recherche) : *Strict*, *Modéré* ou *Désactivé* — en mode désactivé, tous les résultats sont accessibles, sans aucun filtre
+- Filtres : source, taille (jusqu'aux fonds d'écran), couleur, type (photo, illustration, GIF, transparent, dessin), format, licence (Creative Commons, domaine public, usage commercial…)
+- Visionneuse plein écran (← →), dimensions, licence et auteur, téléchargement, « Tout télécharger », recherche d'images similaires (Google Lens, Bing, Yandex, TinEye)
+- Vignettes relayées par Gip (les sites ne voient pas vos recherches)
+- Onglets **Vidéos** et **Actualités** natifs, bandeau d'images dans les résultats web
+- **Toutes les images d'une page** (Ctrl+Maj+G) : images, srcset haute définition, images de fond, affiches vidéo, images de partage — avec tri, filtre de taille, sélection et téléchargement groupé
+
+### ✨ Gip IA et MCP
+- **Assistant intégré** (page `gip://ai` ou panneau latéral redimensionnable, Ctrl+Maj+A) qui voit l'onglet actif
+- Fournisseurs : **Claude** (clé API Anthropic, Claude Opus 5.5 par défaut, réflexion adaptative, réponses en direct) ou **tout service compatible OpenAI** (Ollama, LM Studio, OpenRouter, Mistral, Groq…)
+- **Connectez vos serveurs MCP** : programmes locaux (stdio), serveurs distants Streamable HTTP ou SSE, en-têtes d'authentification, import d'une configuration Claude Desktop / Cursor, ajout rapide (fichiers, mémoire, fetch, GitHub…)
+- Outils du navigateur pour l'IA : lister/ouvrir/fermer des onglets, lire une page, capture d'écran, cliquer, saisir, recherche web/images/vidéos/actualités, favoris, historique, notes (JavaScript en option)
+- Confirmation des actions (réglable), clés et conversations chiffrées dans le profil
+- **Gip comme serveur MCP** : Claude Desktop, Claude Code, Cursor… peuvent piloter Gip (`http://127.0.0.1:7457/mcp`, jeton secret, lecture seule possible, fenêtres privées jamais exposées)
+
+```bash
+# Claude Code
+claude mcp add --transport http gip http://127.0.0.1:7457/mcp --header "Authorization: Bearer <jeton>"
+```
+
+### 🧰 Outils du navigateur
+Capture d'écran (Ctrl+Maj+S, copiée et enregistrée), vidéo en image dans l'image (Ctrl+Maj+Y), traduction de la page, « Demander à Gip IA » dans le menu contextuel, recherche d'images similaires par clic droit.
 
 ### 🛡️ Vie privée intégrée
 - Blocage des publicités et des traqueurs (listes intégrées, compteur par page)

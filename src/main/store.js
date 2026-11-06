@@ -34,6 +34,10 @@ const DEFAULT_SETTINGS = {
   animations: true,
   wallpaper: 'aurora',
   zoom: 1,
+  safeSearch: 'moderate',
+  imageSources: ['all'],
+  imageProxy: true,
+  aiPanelWidth: 400,
   sitePermissions: {}
 };
 

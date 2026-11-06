@@ -10,6 +10,10 @@ const crypto = require('crypto');
 const { Store, uid } = require('./store');
 const privacy = require('./privacy');
 const { AD_COUNT, TRACKER_COUNT } = require('./blocklist');
+const images = require('./images');
+const { createBrowserTools } = require('./browser-tools');
+const { AI } = require('./ai');
+const { GipMcpServer } = require('./mcp-server');
 
 app.setName('Gip 2.0');
 if (process.env.GIP_USER_DATA) app.setPath('userData', process.env.GIP_USER_DATA);
@@ -51,6 +55,10 @@ const preparedSessions = new Set();
 const shieldCounts = new Map(); // webview wcId -> { ads, trackers, upgrades, params, hosts:Set }
 const pendingPermissions = new Map();
 const downloads = new Map();
+const activeTabs = new Map(); // hôte (fenêtre) wcId -> wcId de l'onglet actif
+const galleries = new Map(); // id -> images extraites d'une page
+const tabWaiters = new Set(); // attentes d'ouverture d'onglet par les IA
+let browserTools, ai, mcpServer;
 
 /* ------------------------------------------------------------------ */
 /* Sessions                                                            */
@@ -129,13 +137,14 @@ function serializeShield(c) {
 /* gip:// pages internes                                               */
 /* ------------------------------------------------------------------ */
 
-const INTERNAL_PAGES = new Set(['home', 'newtab', 'search', 'settings', 'history', 'bookmarks', 'downloads', 'privacy', 'mail', 'notes', 'vault', 'drive', 'agenda', 'account', 'about', 'error']);
+const INTERNAL_PAGES = new Set(['home', 'newtab', 'search', 'settings', 'history', 'bookmarks', 'downloads', 'privacy', 'mail', 'notes', 'vault', 'drive', 'agenda', 'account', 'about', 'error', 'ai', 'gallery']);
 const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.woff2': 'font/woff2' };
 
 async function serveInternal(request) {
   const u = new URL(request.url);
   let host = u.hostname || 'home';
   if (host === 'newtab') host = 'home';
+  if (host === 'img') return proxyImage(u.searchParams.get('u'));
   let file;
   if (host === 'assets') file = path.join(PAGES, 'assets', path.normalize(decodeURIComponent(u.pathname)).replace(/^([/\\])+/, ''));
   else if (INTERNAL_PAGES.has(host)) file = path.join(PAGES, host + '.html');
@@ -150,6 +159,20 @@ async function serveInternal(request) {
     return new Response(body, { status: 200, headers });
   } catch {
     return new Response('Introuvable', { status: 404, headers: { 'content-type': 'text/plain' } });
+  }
+}
+
+/** Relais d'images : les vignettes passent par Gip, le site d'origine ne voit pas votre adresse de navigation. */
+async function proxyImage(target) {
+  try {
+    const t = new URL(String(target || ''));
+    if (!/^https?:$/.test(t.protocol)) throw new Error('bad');
+    const res = await proxySession().fetch(t.href, { headers: { accept: 'image/avif,image/webp,image/*;q=0.9,*/*;q=0.5' } });
+    const type = res.headers.get('content-type') || '';
+    if (!res.ok || !/^image\//i.test(type)) return new Response('', { status: 502 });
+    return new Response(res.body, { status: 200, headers: { 'content-type': type, 'cache-control': 'max-age=3600' } });
+  } catch {
+    return new Response('', { status: 400 });
   }
 }
 
@@ -231,6 +254,7 @@ app.on('web-contents-created', (e, contents) => {
     contents.setWindowOpenHandler(() => ({ action: 'deny' }));
     return;
   }
+  for (const w of tabWaiters) w(contents);
   contents.setWindowOpenHandler(({ url, disposition }) => {
     const host = hostWindowOf(contents);
     if (host) host.send('tab:open', { url, background: disposition === 'background-tab', opener: contents.id });
@@ -258,7 +282,7 @@ app.on('web-contents-created', (e, contents) => {
     // Relaye les raccourcis vers l'interface du navigateur quand la page a le focus
     if (input.type !== 'keyDown') return;
     const mod = input.control || input.meta;
-    const relay = (mod && /^[tnwlrfdhjpqk0-9=+\-]$/i.test(input.key)) || (mod && input.key === 'Tab')
+    const relay = (mod && /^[tnwlrfdhjpqk0-9=+\-]$/i.test(input.key)) || (mod && input.shift && /^[asgy]$/i.test(input.key)) || (mod && input.key === 'Tab')
       || ['F5', 'F11', 'F12', 'F6'].includes(input.key) || (input.alt && ['ArrowLeft', 'ArrowRight', 'Home'].includes(input.key))
       || (input.key === 'Escape');
     if (!relay) return;
@@ -287,6 +311,8 @@ function buildContextMenu(contents, p) {
       { label: 'Enregistrer l\'image sous…', click: () => contents.downloadURL(p.srcURL) },
       { label: 'Copier l\'image', click: () => contents.copyImageAt(p.x, p.y) },
       { label: 'Copier l\'adresse de l\'image', click: () => clipboard.writeText(p.srcURL) },
+      { label: 'Rechercher des images similaires', submenu: reverseImageMenu(p.srcURL, send) },
+      { label: 'Toutes les images de cette page', click: () => openGallery(contents) },
       { type: 'separator' }
     );
   }
@@ -309,6 +335,8 @@ function buildContextMenu(contents, p) {
     t.push(
       { label: 'Copier', role: 'copy' },
       { label: `Rechercher « ${sel}${p.selectionText.length > 60 ? '…' : ''} » avec Gip`, click: () => send('tab:open', { url: searchUrl(p.selectionText.trim()) }) },
+      { label: `Images de « ${sel}${p.selectionText.length > 60 ? '…' : ''} »`, click: () => send('tab:open', { url: 'gip://search?type=images&q=' + encodeURIComponent(p.selectionText.trim()) }) },
+      { label: 'Demander à Gip IA', click: () => send('ai:ask', { text: p.selectionText.trim().slice(0, 4000), url: contents.getURL() }) },
       { type: 'separator' }
     );
   }
@@ -321,11 +349,81 @@ function buildContextMenu(contents, p) {
       { label: 'Enregistrer la page sous…', click: () => savePage(contents) },
       { label: 'Imprimer…', click: () => contents.print() },
       { label: 'Ajouter aux favoris', click: () => send('shortcut', { key: 'd', control: true }) },
+      { label: 'Toutes les images de la page', click: () => openGallery(contents) },
+      { label: 'Capture d\'écran', click: () => screenshot(contents) },
+      { label: 'Traduire la page', click: () => send('tab:open', { url: 'https://translate.google.com/translate?sl=auto&tl=fr&u=' + encodeURIComponent(contents.getURL()) }) },
+      { label: 'Demander à Gip IA à propos de cette page', click: () => send('ai:ask', { text: 'Résume cette page.', url: contents.getURL() }) },
       { type: 'separator' }
     );
   }
   t.push({ label: 'Inspecter', click: () => contents.inspectElement(p.x, p.y) });
   Menu.buildFromTemplate(t).popup();
+}
+
+function reverseImageMenu(src, send) {
+  const e = encodeURIComponent(src);
+  return [
+    { label: 'Google Lens', click: () => send('tab:open', { url: 'https://lens.google.com/uploadbyurl?url=' + e }) },
+    { label: 'Bing Visual Search', click: () => send('tab:open', { url: 'https://www.bing.com/images/search?view=detailv2&iss=sbi&q=imgurl:' + e }) },
+    { label: 'Yandex Images', click: () => send('tab:open', { url: 'https://yandex.com/images/search?rpt=imageview&url=' + e }) },
+    { label: 'TinEye', click: () => send('tab:open', { url: 'https://tineye.com/search?url=' + e }) }
+  ];
+}
+
+async function openGallery(contents) {
+  const host = hostWindowOf(contents);
+  try {
+    const r = await contents.executeJavaScript(browserTools.PAGE_IMAGES_JS, true);
+    const id = uid(6);
+    galleries.set(id, r);
+    if (galleries.size > 20) galleries.delete(galleries.keys().next().value);
+    if (host) host.send('tab:open', { url: 'gip://gallery?id=' + id });
+    return id;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function screenshot(contents) {
+  const img = await contents.capturePage();
+  clipboard.writeImage(img);
+  const name = 'Capture Gip ' + new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-') + '.png';
+  const file = uniquePath(app.getPath('downloads'), name);
+  await fs.promises.writeFile(file, img.toPNG());
+  const host = hostWindowOf(contents);
+  if (host) host.send('ui:toast', { text: 'Capture enregistrée et copiée', file });
+  return file;
+}
+
+async function pictureInPicture(contents) {
+  return contents.executeJavaScript(`(async () => {
+    if (document.pictureInPictureElement) { await document.exitPictureInPicture(); return 'exit'; }
+    const v = [...document.querySelectorAll('video')].filter((x) => x.readyState > 0).sort((a, b) => (b.clientWidth * b.clientHeight) - (a.clientWidth * a.clientHeight))[0];
+    if (!v) return 'none';
+    v.disablePictureInPicture = false;
+    await v.requestPictureInPicture();
+    return 'ok';
+  })()`, true).catch(() => 'none');
+}
+
+/** Ouvre un onglet dans une fenêtre et renvoie son webContents (pour les IA). */
+function openTab(url, hostId) {
+  const entry = windows.get(hostId) || [...windows.values()].find((w) => !w.isPrivate);
+  if (!entry || entry.win.isDestroyed()) {
+    createWindow({ url });
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve) => {
+    const waiter = (wc) => {
+      if (wc.getType() !== 'webview') return;
+      tabWaiters.delete(waiter);
+      clearTimeout(t);
+      resolve(wc);
+    };
+    const t = setTimeout(() => { tabWaiters.delete(waiter); resolve(null); }, 8000);
+    tabWaiters.add(waiter);
+    entry.win.webContents.send('tab:open', { url, background: false });
+  });
 }
 
 async function savePage(contents) {
@@ -391,6 +489,11 @@ function proxySession() {
     searchSession.webRequest.onBeforeSendHeaders((d, cb) => {
       const h = d.requestHeaders;
       for (const k of Object.keys(h)) if (/^(cookie|referer)$/i.test(k)) delete h[k];
+      // En-têtes explicitement demandés par Gip (préférence SafeSearch, Referer exigé par certaines API)
+      for (const k of Object.keys(h)) {
+        if (/^x-gip-cookie$/i.test(k)) { h.Cookie = h[k]; delete h[k]; }
+        else if (/^x-gip-referer$/i.test(k)) { h.Referer = h[k]; delete h[k]; }
+      }
       h['Sec-GPC'] = '1';
       cb({ requestHeaders: h });
     });
@@ -406,11 +509,13 @@ function decodeEntities(s) {
     .replace(/\s+/g, ' ').trim();
 }
 
-async function gipSearch(q, page = 0) {
+async function gipSearch(q, page = 0, safe) {
   q = String(q || '').trim();
   if (!q) return { query: q, results: [] };
   const ses = proxySession();
-  const body = new URLSearchParams({ q, kl: 'fr-fr', s: String(page * 25), dc: String(page * 25 + 1) }).toString();
+  safe = images.normSafe(safe || (store.loggedIn ? store.settings.safeSearch : 'moderate'));
+  const kp = safe === 'strict' ? '1' : safe === 'off' ? '-2' : '-1';
+  const body = new URLSearchParams({ q, kl: 'fr-fr', kp, s: String(page * 25), dc: String(page * 25 + 1) }).toString();
   const res = await ses.fetch('https://html.duckduckgo.com/html/', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -436,7 +541,7 @@ async function gipSearch(q, page = 0) {
     try { host = new URL(href).hostname.replace(/^www\./, ''); } catch {}
     results.push({ url: href, title: decodeEntities(a[2]), snippet: decodeEntities(sn ? sn[1] : ''), host });
   }
-  return { query: q, results, page };
+  return { query: q, results, page, safe };
 }
 
 async function suggest(q) {
@@ -586,19 +691,38 @@ function registerUiIpc() {
     await ses.clearStorageData({ origin });
     return true;
   }));
+  ipcMain.handle('ui:active-tab', uiOnly((e, wcId) => { activeTabs.set(e.sender.id, wcId); }));
+  ipcMain.handle('ui:gallery', uiOnly((e, wcId) => { const wc = webContents.fromId(wcId); return wc ? openGallery(wc) : null; }));
+  ipcMain.handle('ui:screenshot', uiOnly((e, wcId) => { const wc = webContents.fromId(wcId); return wc ? screenshot(wc) : null; }));
+  ipcMain.handle('ui:pip', uiOnly((e, wcId) => { const wc = webContents.fromId(wcId); return wc ? pictureInPicture(wc) : 'none'; }));
+  ipcMain.handle('ui:show-file', uiOnly((e, file) => { if (typeof file === 'string' && file.startsWith(app.getPath('downloads'))) shell.showItemInFolder(file); }));
   ipcMain.handle('ui:open-external', uiOnly((e, url) => { if (/^(https?|mailto):/.test(url)) shell.openExternal(url); }));
 }
 
 function afterAuth(e) {
   const entry = browserEntryFor(e.sender);
   prepareSession(store.partition(), { isPrivate: store.isGuest() });
+  startAiServices();
   for (const [id, w] of windows) {
     if (id !== e.sender.id && !w.isPrivate && !w.win.isDestroyed()) w.win.webContents.reload();
   }
   applyTheme();
 }
 
+async function startAiServices() {
+  try {
+    ai.sessionAllow.clear();
+    await ai.disconnectAll();
+    ai.connectEnabled().catch(() => {});
+    if (!store.isGuest() && ai.config().server.enabled) await mcpServer.start(); else await mcpServer.stop();
+  } catch (err) { console.error('Gip IA :', err); }
+}
+
 function lockAll() {
+  for (const id of [...ai.running.keys()]) ai.stop(id);
+  ai.disconnectAll().catch(() => {});
+  mcpServer.stop().catch(() => {});
+  galleries.clear();
   store.logout();
   for (const w of windows.values()) if (!w.win.isDestroyed()) w.win.webContents.reload();
 }
@@ -808,7 +932,54 @@ const API = {
   'privacy.allowHttp': (host) => { privacy.allowHttp(String(host)); return true; },
   'privacy.resetStats': () => { store.update((d) => { d.stats = { blockedTotal: 0, upgradedTotal: 0, cookiesBlockedTotal: 0, paramsStripped: 0 }; }, 'stats'); return true; },
 
-  'search.query': ({ q, page }) => gipSearch(q, page),
+  'search.query': ({ q, page, safe }) => gipSearch(q, page, safe),
+  'search.images': (o = {}) => images.searchImages(proxySession(), { ...o, safe: o.safe || (store.loggedIn ? store.settings.safeSearch : 'moderate') }),
+  'search.videos': (o = {}) => images.searchVideos(proxySession(), { ...o, safe: o.safe || (store.loggedIn ? store.settings.safeSearch : 'moderate') }),
+  'search.news': (o = {}) => images.searchNews(proxySession(), { ...o, safe: o.safe || (store.loggedIn ? store.settings.safeSearch : 'moderate') }),
+  'search.imageSources': () => images.SOURCE_NAMES,
+  'download.url': (url, e) => {
+    if (!/^(https?:|data:image\/)/.test(String(url))) throw new Error('Adresse invalide');
+    e.sender.downloadURL(String(url));
+    return true;
+  },
+  'download.many': (urls, e) => {
+    const list = (Array.isArray(urls) ? urls : []).filter((u) => /^https?:/.test(String(u))).slice(0, 500);
+    list.forEach((u, i) => setTimeout(() => { try { e.sender.downloadURL(u); } catch {} }, i * 120));
+    return list.length;
+  },
+  'clipboard.write': (t) => { clipboard.writeText(String(t).slice(0, 100000)); return true; },
+  'gallery.get': (id) => galleries.get(String(id)) || null,
+
+  'ai.config': () => { need(); return { ...ai.publicConfig(), server: { ...ai.config().server, ...mcpServer.status() } }; },
+  'ai.setConfig': async (patch) => {
+    need();
+    const before = ai.config().server;
+    const wasEnabled = before.enabled; const oldPort = before.port; const oldToken = before.token;
+    ai.setConfig(patch || {});
+    const s = ai.config().server;
+    if (store.isGuest() && s.enabled) { s.enabled = false; throw new Error('Le serveur MCP nécessite un compte Gip (mode invité)'); }
+    if (s.enabled && (!wasEnabled || s.port !== oldPort || !mcpServer.status().running)) await mcpServer.start();
+    else if (!s.enabled && wasEnabled) await mcpServer.stop();
+    else if (s.token !== oldToken) { /* le jeton est relu à chaque requête */ }
+    return { ...ai.publicConfig(), server: { ...ai.config().server, ...mcpServer.status() } };
+  },
+  'ai.testKey': () => { need(); return ai.testAnthropic(); },
+  'ai.saveServer': async (s) => { need(); const saved = ai.saveServer(s || {}); if (saved.enabled) await ai.connect(saved.id); else await ai.disconnect(saved.id); return ai.publicConfig(); },
+  'ai.removeServer': async (id) => { need(); await ai.removeServer(id); return ai.publicConfig(); },
+  'ai.connectServer': async (id) => { need(); await ai.connect(id); return ai.publicConfig(); },
+  'ai.serverTools': (id) => { need(); const c = ai.conns.get(id); return c && c.tools ? c.tools.map((t) => ({ name: t.name, description: t.description || '' })) : []; },
+  'ai.tools': () => { need(); return ai.allTools().map((t) => ({ name: t.name, real: t.real, origin: t.origin, server: t.server || 'Gip', description: t.description })); },
+  'ai.chats': () => { need(); return ai.listChats(); },
+  'ai.chat': (id) => { need(); return ai.getChat(id); },
+  'ai.deleteChat': (id) => { need(); return ai.deleteChat(id); },
+  'ai.send': (o, e) => {
+    need();
+    const sender = e.sender;
+    return ai.send(o || {}, (ev) => { if (!sender.isDestroyed()) sender.send('gip:event', { channel: 'ai:event', payload: ev }); });
+  },
+  'ai.stop': (id) => ai.stop(id),
+  'ai.confirm': (o) => ai.answerConfirm(o || {}),
+  'ai.activeTab': () => { try { const wc = browserTools.tabFor(); return { tab_id: wc.id, title: wc.getTitle(), url: wc.getURL() }; } catch { return null; } },
   'search.suggest': (q) => suggest(q),
   'search.engines': () => Object.fromEntries(Object.entries(SEARCH_ENGINES).map(([k, v]) => [k, v.name])),
   'search.external': ({ engine, q }) => (SEARCH_ENGINES[engine] || SEARCH_ENGINES.duckduckgo).url.replace('%s', encodeURIComponent(q)),
@@ -837,7 +1008,7 @@ function registerInternalIpc() {
     if (!url.startsWith('gip:')) throw new Error('Accès refusé');
     const fn = API[method];
     if (!fn) throw new Error('Méthode inconnue : ' + method);
-    return fn(arg);
+    return fn(arg, e);
   });
   ipcMain.on('gip:privacy-config', (e) => {
     const s = store && store.loggedIn ? store.settings : { fingerprintProtection: true };
@@ -856,6 +1027,22 @@ app.on('second-instance', () => {
 
 app.whenReady().then(() => {
   store = new Store(app.getPath('userData'));
+  browserTools = createBrowserTools({
+    windows, activeTab: activeTabs, store, openTab,
+    webSearch: (q, page) => gipSearch(q, page),
+    imageSearch: (o) => images.searchImages(proxySession(), o),
+    newsSearch: (o) => images.searchNews(proxySession(), o),
+    videoSearch: (o) => images.searchVideos(proxySession(), o),
+    settings: () => ({ safeSearch: store.loggedIn ? store.settings.safeSearch : 'moderate', aiAllowScripts: store.loggedIn ? !!ai.config().allowScripts : false }),
+    addBookmark: (url, title) => { store.update((d) => { if (!d.bookmarks.some((b) => b.url === url)) d.bookmarks.push({ id: uid(6), url, title: title || url, date: Date.now() }); }, 'bookmarks'); broadcast('bookmarks:changed', store.data.bookmarks); },
+    createNote: (title, body) => store.update((d) => { d.notes.unshift({ id: uid(6), title: String(title).slice(0, 300), body: String(body).slice(0, 500000), color: '#00c2ff', pinned: false, tags: ['ia'], date: Date.now() }); }, 'notes')
+  });
+  ai = new AI({ store, tools: browserTools, version: app.getVersion() });
+  mcpServer = new GipMcpServer({
+    tools: browserTools, version: app.getVersion(),
+    config: () => (store.loggedIn && !store.isGuest() ? ai.config().server : { token: '', allowActions: false, port: 7457 }),
+    onActivity: (name) => { for (const { win, isPrivate } of windows.values()) if (!isPrivate && !win.isDestroyed()) win.webContents.send('ui:toast', { text: 'IA externe (MCP) : ' + name }); }
+  });
   Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([
     { role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }
   ]) : null);
@@ -869,6 +1056,8 @@ app.whenReady().then(() => {
   createWindow();
   app.on('activate', () => { if (!windows.size) createWindow(); });
 });
+
+app.on('will-quit', () => { try { mcpServer && mcpServer.stop(); ai && ai.disconnectAll(); } catch {} });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 

@@ -261,6 +261,7 @@
     wv.addEventListener('dom-ready', () => {
       if (!tab.wcId) {
         tab.wcId = wv.getWebContentsId();
+        if (tab === active) ui.invoke('ui:active-tab', tab.wcId);
         if (tab.zoom !== 1) wv.setZoomFactor(tab.zoom);
       }
       updateNavState(tab);
@@ -372,6 +373,7 @@
     updateToolbar();
     updateCrash();
     progress(tab.loading, true);
+    if (tab.wcId) ui.invoke('ui:active-tab', tab.wcId);
     if (tab.wcId) ui.invoke('ui:shield', tab.wcId).then((s) => { tab.shield = s; updateShieldButton(); });
     if (document.activeElement !== $('#url')) {
       if (HOME_URLS.includes(tab.url)) setTimeout(() => focusUrl(), 50);
@@ -643,6 +645,13 @@
       ${menuItem('bookmark', 'Favoris', 'bookmarks')}
       ${menuItem('key', 'Coffre-fort de mots de passe', 'vault')}
       <div class="menu-sep"></div>
+      ${state.loggedIn ? menuItem('sparkle', 'Gip IA — panneau latéral', 'ai', MOD + 'Maj+A') : ''}
+      ${state.loggedIn ? menuItem('plug', 'Connecter des IA (MCP)', 'mcp') : ''}
+      ${menuItem('images', 'Toutes les images de la page', 'gallery', MOD + 'Maj+G')}
+      ${menuItem('camera', 'Capture d\'écran', 'screenshot', MOD + 'Maj+S')}
+      ${menuItem('pip', 'Image dans l\'image (vidéo)', 'pip', MOD + 'Maj+Y')}
+      ${menuItem('translate', 'Traduire la page', 'translate')}
+      <div class="menu-sep"></div>
       ${menuItem('find', 'Rechercher dans la page', 'find', MOD + 'F')}
       ${menuItem('print', 'Imprimer…', 'print', MOD + 'P')}
       ${menuItem('code', 'Outils de développement', 'devtools', 'F12')}
@@ -680,6 +689,12 @@
       case 'account': open('gip://account'); break;
       case 'mail': open('gip://mail'); break;
       case 'find': openFind(); break;
+      case 'ai': toggleAiPanel(); break;
+      case 'mcp': open('gip://ai?view=mcp'); break;
+      case 'gallery': if (active && active.wcId && !isInternal(active.url)) ui.invoke('ui:gallery', active.wcId); else toast('Ouvrez d\'abord une page web'); break;
+      case 'screenshot': if (active && active.wcId) ui.invoke('ui:screenshot', active.wcId); break;
+      case 'pip': if (active && active.wcId) ui.invoke('ui:pip', active.wcId).then((r) => { if (r === 'none') toast('Aucune vidéo dans cette page'); }); break;
+      case 'translate': if (active && /^https?:/.test(active.url)) createTab('https://translate.google.com/translate?sl=auto&tl=fr&u=' + encodeURIComponent(active.url), { afterActive: true }); break;
       case 'print': try { active.wv.print(); } catch {} break;
       case 'devtools': try { active.wv.isDevToolsOpened() ? active.wv.closeDevTools() : active.wv.openDevTools(); } catch {} break;
       case 'lock': ui.invoke('ui:lock'); break;
@@ -696,6 +711,8 @@
 
   const SERVICES = [
     { id: 'search', name: 'Search', icon: 'search', c: '#4d7cff', url: 'gip://search' },
+    { id: 'images', name: 'Images', icon: 'images', c: '#ff4fd8', url: 'gip://search?type=images' },
+    { id: 'ai', name: 'Gip IA', icon: 'sparkle', c: '#00d4a6', url: 'gip://ai' },
     { id: 'mail', name: 'Mail', icon: 'mail', c: '#ff5c8a', url: 'gip://mail' },
     { id: 'notes', name: 'Notes', icon: 'note', c: '#ffb547', url: 'gip://notes' },
     { id: 'vault', name: 'Coffre', icon: 'key', c: '#2ee59d', url: 'gip://vault' },
@@ -1002,6 +1019,10 @@
     if (mod && k.shift && key === 'n') { runAction('private'); return true; }
     if (mod && k.shift && key === 'w') { ui.invoke('ui:window', 'close'); return true; }
     if (mod && k.shift && key === 'i') { runAction('devtools'); return true; }
+    if (mod && k.shift && key === 'a') { if (state.loggedIn) toggleAiPanel(); return true; }
+    if (mod && k.shift && key === 'g') { runAction('gallery'); return true; }
+    if (mod && k.shift && key === 's') { runAction('screenshot'); return true; }
+    if (mod && k.shift && key === 'y') { runAction('pip'); return true; }
     if (mod && k.shift && key === 'Delete') { openInternal('gip://privacy'); return true; }
     if (mod && key === 't') { createTab(homepage()); return true; }
     if (mod && key === 'n') { runAction('newwin'); return true; }
@@ -1030,6 +1051,53 @@
     return false;
   }
 
+  /* ------------------------------ Panneau Gip IA ------------------------------ */
+
+  let aiWv = null;
+  function aiPanelOpen() { return !$('#aipanel').classList.contains('hidden'); }
+  function setAiWidth(w) {
+    w = Math.max(300, Math.min(Math.round(innerWidth * 0.7), w | 0));
+    $('#content').style.setProperty('--ai-w', w + 'px');
+    return w;
+  }
+  function toggleAiPanel(force, q) {
+    const open = force != null ? force : !aiPanelOpen();
+    $('#aipanel').classList.toggle('hidden', !open);
+    $('#content').classList.toggle('with-ai', open);
+    $('#btn-ai').classList.toggle('on', open);
+    if (!open) { try { active && active.wv.focus(); } catch {} return; }
+    setAiWidth(settings.aiPanelWidth || 400);
+    const url = 'gip://ai?panel=1' + (q ? '&q=' + encodeURIComponent(q) : '');
+    if (!aiWv) {
+      aiWv = document.createElement('webview');
+      aiWv.setAttribute('partition', state.partition);
+      aiWv.setAttribute('webpreferences', 'contextIsolation=yes, sandbox=yes');
+      aiWv.src = url;
+      $('#ai-host').appendChild(aiWv);
+    } else if (q) aiWv.loadURL(url).catch(() => {});
+    setTimeout(() => { try { aiWv.focus(); } catch {} }, 120);
+  }
+  function bindAiPanel() {
+    $('#btn-ai').onclick = () => { if (!state.loggedIn) { toast('Gip IA nécessite un compte (fenêtre normale)'); return; } toggleAiPanel(); };
+    $('#ai-close').onclick = () => toggleAiPanel(false);
+    $('#ai-tab').onclick = () => { toggleAiPanel(false); openInternal('gip://ai'); };
+    const handle = $('#ai-resize');
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      document.body.classList.add('resizing-ai'); handle.classList.add('drag');
+      const right = $('#content').getBoundingClientRect().right;
+      let w = 0;
+      const move = (ev) => { w = setAiWidth(right - ev.clientX); };
+      const up = () => {
+        document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+        document.body.classList.remove('resizing-ai'); handle.classList.remove('drag');
+        if (w) { settings.aiPanelWidth = w; ui.invoke('ui:settings-set', { aiPanelWidth: w }).catch(() => {}); }
+      };
+      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+    });
+    if (IS_PRIVATE) $('#btn-ai').classList.add('hidden');
+  }
+
   /* ------------------------------ Toasts ------------------------------ */
 
   function toast(msg, { action, onAction, timeout = 3200 } = {}) {
@@ -1050,6 +1118,7 @@
     bindAuth();
     bindOmnibox();
     bindFind();
+    bindAiPanel();
     $('#newtab').onclick = () => createTab(homepage());
     $('#btn-back').onclick = () => active && active.wv.goBack();
     $('#btn-forward').onclick = () => active && active.wv.goForward();
@@ -1100,6 +1169,9 @@
       }
     });
     ui.on('permission:request', permissionPrompt);
+    ui.on('ui:toast', (t) => toast(t.text, t.file ? { action: 'Afficher', onAction: () => ui.invoke('ui:show-file', t.file) } : {}));
+    ui.on('ai:ask', ({ text, url }) => { if (!state || !state.loggedIn) return; toggleAiPanel(true, text + (url ? '\n\n(Page : ' + url + ')' : '')); });
+    ui.on('ai:close-tab', (wcId) => { const t = tabs.find((x) => x.wcId === wcId); if (t) closeTab(t); });
     ui.on('download:update', (d) => {
       const prev = downloads.get(d.id);
       downloads.set(d.id, d);

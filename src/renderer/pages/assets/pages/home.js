@@ -31,7 +31,7 @@
       </form>
       <div class="hsug hidden" id="sug"></div>
     </div>
-    <div class="svcs">${G.SERVICES.slice(0, 7).map((s) => `<a href="${s.url}" style="--c:${s.c}"><span class="s">${ico(s.icon, 15)}</span>${s.name.replace('Gip ', '')}</a>`).join('')}</div>
+    <div class="svcs">${G.SERVICES.slice(0, 9).map((s) => `<a href="${s.url}" style="--c:${s.c}"><span class="s">${ico(s.icon, 15)}</span>${s.name.replace('Gip ', '')}</a>`).join('')}</div>
     <div class="dial" id="dial"></div>
     <div class="widgets" id="widgets"></div>
     <div class="foot">🔒 Chiffré de bout en bout sur cet appareil · Aucune télémétrie <a href="gip://settings">Personnaliser</a></div>

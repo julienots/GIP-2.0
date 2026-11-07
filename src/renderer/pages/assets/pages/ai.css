@@ -113,3 +113,13 @@ pre.snip { white-space: pre-wrap; word-break: break-all; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .hidden { display: none !important; }
 @media (max-width: 860px) { .chat { grid-template-columns: 1fr; } .convs { display: none; } }
+
+/* Android */
+body.ai-android .ai-panel { padding: 8px 10px calc(10px + env(safe-area-inset-bottom)) !important; height: 100dvh; }
+.ai-mhead { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ai-mhead b { display: inline-flex; gap: 6px; align-items: center; font-size: 16px; }
+body.ai-android .msg.user .bubble { max-width: 88%; }
+body.ai-android .think, body.ai-android .tool, body.ai-android .typing, body.ai-android .aerr, body.ai-android .confirm { margin-left: 0; }
+body.ai-android .msg.bot .av { display: none; }
+body.ai-android .grid.c3 { grid-template-columns: 1fr; }
+body.ai-android .srv .row { flex-wrap: wrap; }

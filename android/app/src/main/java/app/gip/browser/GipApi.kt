@@ -21,7 +21,10 @@ interface GipHost {
 }
 
 /** Dispatch des appels `gip.call(method, arg)` des pages internes — équivalent de l'objet API de main.js. */
-class GipApi(private val store: GipStore, private val host: GipHost) {
+class GipApi(private val store: GipStore, private val host: GipHost, aiHost: AiHost) {
+
+    /** Gip IA : assistant, serveurs MCP distants et outils du navigateur. */
+    val ai = GipAi(aiHost, "2.0.0")
 
     val engines = linkedMapOf(
         "gip" to ("Gip Search" to "gip://search?q=%s"),
@@ -154,6 +157,22 @@ class GipApi(private val store: GipStore, private val host: GipHost) {
             true }
         "privacy.allowHttp" -> { Shield.httpExceptions.add(s(arg)); true }
         "privacy.resetStats" -> { store.update { d -> d.put("stats", JSONObject().put("blockedTotal", 0).put("upgradedTotal", 0).put("cookiesBlockedTotal", 0).put("paramsStripped", 0)) }; true }
+
+        "ai.config" -> { need(); ai.publicConfig() }
+        "ai.setConfig" -> { need(); ai.setConfig(o(arg)) }
+        "ai.testKey" -> { need(); ai.testKey() }
+        "ai.saveServer" -> { need(); ai.saveServer(o(arg)) }
+        "ai.removeServer" -> { need(); ai.removeServer(s(arg)) }
+        "ai.connectServer" -> { need(); ai.connect(s(arg)) }
+        "ai.serverTools" -> { need(); ai.serverTools(s(arg)) }
+        "ai.tools" -> { need(); ai.toolsList() }
+        "ai.chats" -> { need(); ai.listChats() }
+        "ai.chat" -> { need(); ai.getChat(s(arg)) }
+        "ai.deleteChat" -> { need(); ai.deleteChat(s(arg)) }
+        "ai.send" -> { need(); ai.send(o(arg)) }
+        "ai.stop" -> ai.stop(s(arg))
+        "ai.confirm" -> ai.confirm(o(arg))
+        "ai.activeTab" -> (if (store.loggedIn) ai.activeTabSafe() else null) ?: JSONObject.NULL
 
         "search.query" -> o(arg).let { GipSearch.query(it.optString("q"), it.optInt("page", 0)) }
         "search.suggest" -> JSONArray(GipSearch.suggest(s(arg)))

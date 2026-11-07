@@ -45,8 +45,8 @@ android {
         applicationId = "app.gip.browser"
         minSdk = 29
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "2.1.0"
     }
 
     buildTypes {
@@ -63,12 +63,21 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+
+    packaging {
+        resources {
+            excludes += setOf("META-INF/DEPENDENCIES", "META-INF/LICENSE*", "META-INF/NOTICE*", "META-INF/INDEX.LIST", "META-INF/*.kotlin_module", "META-INF/versions/9/module-info.class", "META-INF/FastDoubleParser-*")
+            pickFirsts += setOf("META-INF/io.netty.versions.properties")
+        }
+    }
 }
 
 tasks.named("preBuild") { dependsOn(syncGipPages) }
 
 dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
+    // SDK officiel Anthropic (Claude) pour Gip IA
+    implementation("com.anthropic:anthropic-java:3.6.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
 }

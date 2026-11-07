@@ -2,7 +2,8 @@
 (async () => {
   const { call, esc, ico, $, $$ } = G;
   const params = new URLSearchParams(location.search);
-  const PANEL = params.get('panel') === '1';
+  const ANDROID = document.documentElement.classList.contains('android');
+  const PANEL = params.get('panel') === '1' || ANDROID;
   document.title = 'Gip IA';
   let s;
   try { s = await G.boot(); if (!s) throw new Error('Gip est verrouillé'); } catch (e) { return G.lockedScreen(e.message); }
@@ -11,16 +12,16 @@
   let cfg = await call('ai.config');
   const me = await call('account.get').catch(() => ({}));
   const myName = me && me.account ? me.account.name : '';
-  let view = ['chat', 'settings', 'mcp', 'server'].includes(params.get('view')) ? params.get('view') : 'chat';
+  let view = (ANDROID ? ['chat', 'settings', 'mcp'] : ['chat', 'settings', 'mcp', 'server']).includes(params.get('view')) ? params.get('view') : 'chat';
   let current = null; // conversation affichée
   let waitingNew = false;
   let live = null; // état du rendu en direct
 
   let page;
-  if (PANEL) { page = $('#page'); page.classList.add('page', 'ai-panel'); }
+  if (PANEL) { page = $('#page'); page.classList.add('page', 'ai-panel'); if (ANDROID) { document.body.classList.add('ai-android'); page.insertAdjacentHTML('afterbegin', `<header class="ai-mhead"><a class="icon-btn" href="gip://home">${ico('home', 18)}</a><b>${ico('sparkle', 16)} Gip IA</b></header>`); } }
   else page = G.shell('ai', { title: 'Gip IA', subtitle: 'Votre assistant, connecté au navigateur et à vos serveurs MCP', icon: 'sparkle', color: '#00d4a6' });
 
-  const TABS = [['chat', 'sparkle', 'Discussion'], ['settings', 'settings', 'Modèle & clés'], ['mcp', 'plug', 'Serveurs MCP'], ['server', 'bot', 'Gip pour vos IA']];
+  const TABS = [['chat', 'sparkle', 'Discussion'], ['settings', 'settings', 'Modèle & clés'], ['mcp', 'plug', 'Serveurs MCP'], ['server', 'bot', 'Gip pour vos IA']].filter((t) => !(ANDROID && t[0] === 'server'));
   page.insertAdjacentHTML('beforeend', `<nav class="ai-tabs">${TABS.map(([k, i, l]) => `<button data-v="${k}">${ico(i, 15)}<span>${l}</span></button>`).join('')}</nav><div id="view"></div>`);
   $('.ai-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (b) show(b.dataset.v); });
 
@@ -331,18 +332,19 @@
     { name: 'GitHub', type: 'http', url: 'https://api.githubcopilot.com/mcp/', headers: { Authorization: 'Bearer VOTRE_JETON_GITHUB' }, hint: 'Dépôts, issues, pull requests (jeton GitHub requis).' },
     { name: 'Serveur HTTP', type: 'http', url: 'https://', hint: 'N\'importe quel serveur MCP distant (Streamable HTTP ou SSE).' }
   ];
+  const PRESETS_SHOWN = () => MCP_PRESETS.map((p, i) => [p, i]).filter(([p]) => !(ANDROID && p.type === 'stdio'));
   function dot(st) { return `<span class="sdot ${st}"></span>`; }
   function renderMcp() {
     const list = cfg.mcpServers;
-    $('#view').innerHTML = `<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><h2 style="margin:0">${ico('plug', 18)} Serveurs MCP connectés à Gip IA</h2><div class="muted small">Les outils de ces serveurs sont disponibles pour l'assistant. Protocole : stdio (programme local), Streamable HTTP ou SSE.</div></div>
+    $('#view').innerHTML = `<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><h2 style="margin:0">${ico('plug', 18)} Serveurs MCP connectés à Gip IA</h2><div class="muted small">Les outils de ces serveurs sont disponibles pour l'assistant. Protocole : ${ANDROID ? 'Streamable HTTP ou SSE' : 'stdio (programme local), Streamable HTTP ou SSE'}.</div></div>
       <div class="row"><button class="btn sm" id="import">${ico('upload', 15)} Importer une config JSON</button><button class="btn sm primary" id="add">${ico('plus', 15)} Ajouter</button></div></div>
       <div class="slist">${list.map((sv) => `<div class="srv" data-id="${sv.id}">${dot(sv.status)}<div class="sinfo"><b>${esc(sv.name)}</b><div class="muted small mono">${sv.type === 'stdio' ? esc(sv.command + ' ' + (sv.args || []).join(' ')) : esc(sv.url)}</div>
         <div class="small ${sv.status === 'error' ? 'bad' : 'muted'}">${sv.status === 'connected' ? `Connecté · ${sv.toolCount} outil(s)${sv.serverName ? ' · ' + esc(sv.serverName) : ''}` : sv.status === 'connecting' ? 'Connexion…' : sv.status === 'error' ? esc(sv.error) : sv.enabled ? 'Déconnecté' : 'Désactivé'}</div></div>
         <div class="row"><button class="btn sm" data-a="tools" ${sv.status !== 'connected' ? 'disabled' : ''}>Outils</button><button class="btn sm" data-a="connect">${ico('refresh', 14)} ${sv.status === 'connected' ? 'Reconnecter' : 'Connecter'}</button><button class="icon-btn sm" data-a="edit" title="Modifier">${ico('edit', 15)}</button><button class="icon-btn sm" data-a="del" title="Supprimer">${ico('trash', 15)}</button></div></div>`).join('') || `<div class="empty" style="padding:30px"><div class="big">${ico('plug', 34)}</div><h3>Aucun serveur MCP</h3><p>Ajoutez-en un pour donner de nouveaux pouvoirs à Gip IA.</p></div>`}</div></div>
       <h3 style="margin:22px 0 10px">Ajout rapide</h3>
-      <div class="grid c3">${MCP_PRESETS.map((p, i) => `<button class="card preset" data-p="${i}"><b>${esc(p.name)}</b><span class="muted small">${esc(p.hint)}</span><span class="mono small muted">${esc(p.type === 'stdio' ? p.command + ' ' + p.args.join(' ') : p.url)}</span></button>`).join('')}</div>`;
+      ${ANDROID ? '<p class="muted small">Sur téléphone, Gip se connecte aux serveurs MCP distants (Streamable HTTP ou SSE). Les serveurs « programme local » (stdio) ne sont disponibles que sur la version ordinateur.</p>' : ''}<div class="grid c3">${PRESETS_SHOWN().map(([p, i]) => `<button class="card preset" data-p="${i}"><b>${esc(p.name)}</b><span class="muted small">${esc(p.hint)}</span><span class="mono small muted">${esc(p.type === 'stdio' ? p.command + ' ' + p.args.join(' ') : p.url)}</span></button>`).join('')}</div>`;
     G.hydrate($('#view'));
-    $('#add').onclick = () => editServer({ type: 'stdio', enabled: true });
+    $('#add').onclick = () => editServer({ type: ANDROID ? 'http' : 'stdio', enabled: true });
     $('#import').onclick = importJson;
     $$('.preset').forEach((b) => b.onclick = () => { const p = MCP_PRESETS[+b.dataset.p]; editServer({ ...p, enabled: true }); });
     $('.slist').onclick = async (e) => {
@@ -365,16 +367,16 @@
     const r = await G.modal({
       title: sv.id ? 'Modifier le serveur MCP' : 'Ajouter un serveur MCP', wide: true,
       body: `<label class="lbl">Nom</label><input class="input" id="sname" value="${esc(sv.name || '')}" placeholder="Mon serveur">
-        <label class="lbl">Type de connexion</label><select class="select" id="stype"><option value="stdio">Programme local (stdio)</option><option value="http">Distant — Streamable HTTP</option><option value="sse">Distant — SSE (ancien)</option></select>
+        <label class="lbl">Type de connexion</label><select class="select" id="stype">${ANDROID ? '' : '<option value="stdio">Programme local (stdio)</option>'}<option value="http">Distant — Streamable HTTP</option><option value="sse">Distant — SSE (ancien)</option></select>
         <div id="fstdio"><label class="lbl">Commande</label><input class="input mono" id="scmd" value="${esc(sv.command || '')}" placeholder="npx, uvx, node, python…">
           <label class="lbl">Arguments</label><input class="input mono" id="sargs" value="${esc((sv.args || []).map((a) => /\s/.test(a) ? `"${a}"` : a).join(' '))}" placeholder="-y @modelcontextprotocol/server-memory">
           <label class="lbl">Variables d'environnement (une par ligne, CLE=valeur)</label><textarea class="textarea mono" id="senv" style="min-height:70px">${esc(kv(sv.env, '='))}</textarea></div>
         <div id="fhttp"><label class="lbl">Adresse</label><input class="input mono" id="surl" value="${esc(sv.url || '')}" placeholder="https://exemple.com/mcp">
           <label class="lbl">En-têtes HTTP (un par ligne, Nom: valeur)</label><textarea class="textarea mono" id="shead" style="min-height:70px" placeholder="Authorization: Bearer …">${esc(kv(sv.headers, ': '))}</textarea></div>
         <div class="setting"><div class="txt"><b>Activé</b><span>Se connecter automatiquement au déverrouillage de Gip</span></div><button class="switch ${sv.enabled !== false ? 'on' : ''}" id="sen"></button></div>
-        <p class="muted small">⚠️ Un serveur stdio lance un programme sur votre ordinateur avec vos droits. N'ajoutez que des serveurs de confiance.</p>`,
+        <p class="muted small">⚠️ ${ANDROID ? 'Un serveur MCP reçoit ce que l\'IA lui envoie. N\'ajoutez que des serveurs de confiance.' : 'Un serveur stdio lance un programme sur votre ordinateur avec vos droits. N\'ajoutez que des serveurs de confiance.'}</p>`,
       onOpen: (m) => {
-        const t = m.querySelector('#stype'); t.value = sv.type || 'stdio';
+        const t = m.querySelector('#stype'); t.value = sv.type || (ANDROID ? 'http' : 'stdio');
         const sync = () => { m.querySelector('#fstdio').classList.toggle('hidden', t.value !== 'stdio'); m.querySelector('#fhttp').classList.toggle('hidden', t.value === 'stdio'); };
         t.onchange = sync; sync();
         m.querySelector('#sen').onclick = (e) => e.currentTarget.classList.toggle('on');
@@ -407,6 +409,7 @@
     for (const [name, c] of Object.entries(servers || {})) {
       if (!c || typeof c !== 'object') continue;
       const type = c.command ? 'stdio' : (c.type === 'sse' || c.transport === 'sse') ? 'sse' : 'http';
+      if (ANDROID && type === 'stdio') { G.toast(name + ' : serveur local (stdio) ignoré sur téléphone', true); continue; }
       try { cfg = await call('ai.saveServer', { name, type, command: c.command, args: c.args || [], env: c.env || {}, url: c.url || c.serverUrl || '', headers: c.headers || {}, enabled: true }); n++; } catch (e) { G.toast(name + ' : ' + e.message, true); }
     }
     G.toast(n + ' serveur(s) importé(s)');

@@ -53,7 +53,7 @@ class MainActivity : Activity(), GipHost {
     companion object {
         const val HOST = "appassets.androidplatform.net"
         const val BASE = "https://$HOST/"
-        private val PAGES = setOf("home", "search", "settings", "history", "bookmarks", "downloads", "privacy", "mail", "notes", "vault", "drive", "agenda", "account", "about", "error", "auth")
+        private val PAGES = setOf("ai", "home", "search", "settings", "history", "bookmarks", "downloads", "privacy", "mail", "notes", "vault", "drive", "agenda", "account", "about", "error", "auth")
         private const val REQ_FILE = 41
     }
 
@@ -61,6 +61,7 @@ class MainActivity : Activity(), GipHost {
 
     inner class Tab(val webView: WebView, val isPrivate: Boolean) {
         val id = GipStore.uid(8)
+        val num = ++tabSeq
         @Volatile var url: String = ""
         @Volatile var topHost: String = ""
         @Volatile var isInternal = false
@@ -78,6 +79,7 @@ class MainActivity : Activity(), GipHost {
     private val bg = Executors.newFixedThreadPool(3)
     private val ui = Handler(Looper.getMainLooper())
     private val tabs = mutableListOf<Tab>()
+    private var tabSeq = 0
     private var current: Tab? = null
     private var authView: WebView? = null
     private var pendingUrl: String? = null
@@ -112,7 +114,7 @@ class MainActivity : Activity(), GipHost {
         setContentView(R.layout.activity_main)
         Shield.load(this)
         store = GipStore(filesDir)
-        api = GipApi(store, this)
+        api = GipApi(store, this, AndroidAiTools(this, store))
         // Débogage WebView uniquement dans les versions de test (APK debug)
         WebView.setWebContentsDebuggingEnabled(applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0)
 
@@ -210,6 +212,7 @@ class MainActivity : Activity(), GipHost {
     override fun lock() {
         ui.post {
             saveSession()
+            api.ai.stopAll()
             store.logout()
             showLock(quick = true)
         }
@@ -225,8 +228,17 @@ class MainActivity : Activity(), GipHost {
                 prefs.edit().putString("lastAccount", id).apply()
             }
             ui.postDelayed({ enterBrowser() }, 380)
+            bg.execute { try { api.ai.connectEnabled() } catch (e: Throwable) { logError("ai connect", e) } }
         }
     }
+
+    /* ------------------------------ Accès pour Gip IA ------------------------------ */
+
+    fun aiTabs(): List<Tab> = tabs.toList()
+    fun aiCurrentTab(): Tab? = current
+    fun aiNewTab(url: String): Tab = newTab(url, opener = current?.takeIf { !it.isPrivate })
+    fun aiLoad(tab: Tab, url: String) = load(tab, url)
+    fun aiClose(tab: Tab) = closeTab(tab)
 
     private fun enterBrowser() {
         authView?.let { container.removeView(it); it.destroy() }
